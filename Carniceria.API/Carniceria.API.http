@@ -1,0 +1,6 @@
+@Carniceria.API_HostAddress = http://localhost:5049
+
+GET {{Carniceria.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

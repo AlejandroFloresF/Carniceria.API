@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Carniceria.API/Carniceria.API.csproj" />
+  <Project Path="Carniceria.Application/Carniceria.Application.csproj" />
+  <Project Path="Carniceria.Domain/Carniceria.Domain.csproj" />
+  <Project Path="Carniceria.Infrastructure/Carniceria.Infrastructure.csproj" />
+</Solution>
