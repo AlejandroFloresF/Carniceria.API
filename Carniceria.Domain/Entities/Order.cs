@@ -73,7 +73,9 @@ public class Order : BaseEntity
         SetUpdated();
     }
 
-    public void ConfirmPayLater(Guid customerId, string customerName, decimal advancePayment = 0)
+    public PaymentMethod? AdvancePaymentMethod { get; private set; }
+
+    public void ConfirmPayLater(Guid customerId, string customerName, decimal advancePayment = 0, PaymentMethod? advancePaymentMethod = null)
     {
         if (!_items.Any()) throw new DomainException("Cannot confirm an empty order.");
         if (customerId == Guid.Empty)
@@ -84,6 +86,7 @@ public class Order : BaseEntity
         CustomerName = customerName;
         PaymentMethod = PaymentMethod.PayLater;
         CashReceived = advancePayment;
+        AdvancePaymentMethod = advancePayment > 0 ? advancePaymentMethod : null;
         Status = OrderStatus.Completed;
         SetUpdated();
     }

@@ -14,7 +14,8 @@ public record CreateOrderCommand(
     decimal CashReceived,
     Guid? CustomerId,
     string? DebtNote = null,
-    decimal AdvancePayment = 0
+    decimal AdvancePayment = 0,
+    PaymentMethod? AdvancePaymentMethod = null
 ) : IRequest<Result<TicketDto>>;
 
 public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<TicketDto>>
@@ -111,7 +112,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
 
             try
             {
-                order.ConfirmPayLater(customer.Id, customer.Name, cmd.AdvancePayment);
+                order.ConfirmPayLater(customer.Id, customer.Name, cmd.AdvancePayment, cmd.AdvancePaymentMethod);
             }
             catch (DomainException ex)
             {
@@ -132,7 +133,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
 
         var folioNumber = await _tickets.GetNextFolioNumberAsync(ct);
         var folio = folioNumber.ToString().PadLeft(5, '0');
-        var ticket = Ticket.Generate(order, session.CashierName, "Carnicería Don Memo", folio);
+        var ticket = Ticket.Generate(order, session.CashierName, "Carnicería La Única", folio);
 
         await _orders.AddAsync(order, ct);
         await _tickets.AddAsync(ticket, ct);

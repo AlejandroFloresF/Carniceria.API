@@ -37,10 +37,17 @@ public class CustomerDebtRepository : ICustomerDebtRepository
                     && d.Status == DebtStatus.Pending)
            .SumAsync(d => d.Amount, ct);
 
-    // ← método nuevo que faltaba:
     public Task<decimal> GetTotalPendingAllAsync(
         CancellationToken ct = default) =>
         _db.CustomerDebts
            .Where(d => d.Status == DebtStatus.Pending)
            .SumAsync(d => d.Amount, ct);
+
+    public Task<List<CustomerDebt>> GetPaidInRangeAsync(
+        DateTime from, DateTime to, CancellationToken ct = default) =>
+        _db.CustomerDebts
+           .Where(d => d.Status == DebtStatus.Paid
+                    && d.PaidAt >= from
+                    && d.PaidAt <= to)
+           .ToListAsync(ct);
 }

@@ -5,7 +5,7 @@ public record ProductDto(Guid Id, string Name, string Category, decimal PricePer
 public record OrderItemInputDto(Guid ProductId, decimal Quantity);
 public record TicketItemDto(Guid ProductId, string ProductName, decimal Quantity, string Unit, decimal UnitPrice, decimal Total);
 public record CashierSessionDto(Guid SessionId, string CashierName, DateTime OpenedAt, decimal openingCash);
-public record SessionSummaryDto(Guid SessionId, string CashierName, DateTime OpenedAt, DateTime? ClosedAt, int TotalOrders, decimal TotalSales, decimal TotalCash, decimal TotalCard, decimal TotalTransfer, decimal TotalDiscounts, decimal OpeningCash, decimal ExpectedCash);
+public record SessionSummaryDto(Guid SessionId, string CashierName, DateTime OpenedAt, DateTime? ClosedAt, int TotalOrders, decimal TotalSales, decimal TotalCash, decimal TotalCard, decimal TotalTransfer, decimal TotalDiscounts, decimal OpeningCash, decimal ExpectedCash, decimal TotalDebtPayments);
 public record CustomerDto(
     Guid Id,
     string Name,
@@ -100,7 +100,8 @@ public record DashboardDto(
     double AvgItemsPerOrder,
     int? PeakHour,
     string? BestSellingProductName,
-    decimal BestSellingProductRevenue
+    decimal BestSellingProductRevenue,
+    decimal TotalDebtPayments
 );
 
 public record TicketDto(

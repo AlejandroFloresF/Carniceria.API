@@ -29,7 +29,18 @@ public class Product : BaseEntity
         PricePerUnit = newPrice;
         SetUpdated();
     }
+    public void Update(string name, string category, decimal price, string unit)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Product name is required.");
+        if (price <= 0) throw new DomainException("Price must be greater than zero.");
+        Name = name;
+        Category = category;
+        PricePerUnit = price;
+        Unit = unit;
+        SetUpdated();
+    }
     public void Deactivate() { IsActive = false; SetUpdated(); }
+    public void Activate()   { IsActive = true;  SetUpdated(); }
 
     public void AddStock(decimal qty)
     {

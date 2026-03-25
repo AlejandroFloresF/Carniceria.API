@@ -8,20 +8,46 @@ public record GetSessionSummaryQuery(Guid SessionId) : IRequest<Result<SessionSu
 public class GetSessionSummaryHandler : IRequestHandler<GetSessionSummaryQuery, Result<SessionSummaryDto>>
 {
     private readonly ISessionRepository _sessions;
-    public GetSessionSummaryHandler(ISessionRepository sessions) => _sessions = sessions;
+    private readonly ICustomerDebtRepository _debts;
+    public GetSessionSummaryHandler(ISessionRepository sessions, ICustomerDebtRepository debts)
+    {
+        _sessions = sessions;
+        _debts    = debts;
+    }
     public async Task<Result<SessionSummaryDto>> Handle(GetSessionSummaryQuery q, CancellationToken ct)
     {
         var session = await _sessions.GetByIdAsync(q.SessionId, ct);
         if (session is null) return Result.Fail<SessionSummaryDto>("Session not found.");
         var orders = await _sessions.GetOrdersAsync(q.SessionId, ct);
         var completed = orders.Where(o => o.Status == OrderStatus.Completed).ToList();
+
+        // Cobros de deuda durante el turno
+        var sessionTo  = session.ClosedAt ?? DateTime.UtcNow;
+        var paidDebts  = await _debts.GetPaidInRangeAsync(session.OpenedAt, sessionTo, ct);
+        var debtCash   = paidDebts.Where(d => d.PaidWithMethod == PaymentMethod.Cash).Sum(d => d.Amount);
+        var debtCard   = paidDebts.Where(d => d.PaidWithMethod == PaymentMethod.Card).Sum(d => d.Amount);
+        var debtTransf = paidDebts.Where(d => d.PaidWithMethod == PaymentMethod.Transfer).Sum(d => d.Amount);
+        var totalDebtPayments = paidDebts.Sum(d => d.Amount);
+
+        // Anticipos por método
+        var advCash  = completed.Where(o => o.PaymentMethod == PaymentMethod.PayLater
+                                         && (o.AdvancePaymentMethod == PaymentMethod.Cash || o.AdvancePaymentMethod == null))
+                                .Sum(o => o.CashReceived);
+        var advCard  = completed.Where(o => o.PaymentMethod == PaymentMethod.PayLater
+                                         && o.AdvancePaymentMethod == PaymentMethod.Card).Sum(o => o.CashReceived);
+        var advTransf = completed.Where(o => o.PaymentMethod == PaymentMethod.PayLater
+                                          && o.AdvancePaymentMethod == PaymentMethod.Transfer).Sum(o => o.CashReceived);
+
+        var totalCash     = completed.Where(o => o.PaymentMethod == PaymentMethod.Cash).Sum(o => o.Total) + advCash + debtCash;
+        var totalCard     = completed.Where(o => o.PaymentMethod == PaymentMethod.Card).Sum(o => o.Total) + advCard + debtCard;
+        var totalTransfer = completed.Where(o => o.PaymentMethod == PaymentMethod.Transfer).Sum(o => o.Total) + advTransf + debtTransf;
+
         return Result.Ok(new SessionSummaryDto(
             session.Id, session.CashierName, session.OpenedAt, session.ClosedAt,
             completed.Count, completed.Sum(o => o.Total),
-            completed.Where(o => o.PaymentMethod == PaymentMethod.Cash).Sum(o => o.Total),
-            completed.Where(o => o.PaymentMethod == PaymentMethod.Card).Sum(o => o.Total),
-            completed.Where(o => o.PaymentMethod == PaymentMethod.Transfer).Sum(o => o.Total),
+            totalCash, totalCard, totalTransfer,
             completed.Sum(o => o.DiscountAmount), session.OpeningCash,
-            session.OpeningCash + completed.Where(o => o.PaymentMethod == PaymentMethod.Cash).Sum(o => o.Total)));
+            session.OpeningCash + totalCash,
+            totalDebtPayments));
     }
 }

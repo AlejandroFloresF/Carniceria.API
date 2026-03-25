@@ -10,5 +10,5 @@ public interface ICustomerDebtRepository
     Task AddAsync(CustomerDebt debt, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
     Task<decimal> GetTotalPendingAllAsync(CancellationToken ct = default);
-
+    Task<List<CustomerDebt>> GetPaidInRangeAsync(DateTime from, DateTime to, CancellationToken ct = default);
 }

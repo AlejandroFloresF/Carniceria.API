@@ -14,7 +14,8 @@ public record CreateOrderRequest(
     decimal CashReceived,
     Guid? CustomerId,
     string? DebtNote = null,
-    decimal AdvancePayment = 0
+    decimal AdvancePayment = 0,
+    string? AdvancePaymentMethod = null
 );
 
 [ApiController]
@@ -27,6 +28,11 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest req)
     {
+        PaymentMethod? advMethod = null;
+        if (!string.IsNullOrEmpty(req.AdvancePaymentMethod) &&
+            Enum.TryParse<PaymentMethod>(req.AdvancePaymentMethod, out var parsedAdv))
+            advMethod = parsedAdv;
+
         var result = await _mediator.Send(new CreateOrderCommand(
             req.CashierSessionId,
             req.Items,
@@ -35,7 +41,8 @@ public class OrdersController : ControllerBase
             req.CashReceived,
             req.CustomerId,
             req.DebtNote,
-            req.AdvancePayment
+            req.AdvancePayment,
+            advMethod
         ));
         return result.IsSuccess
             ? CreatedAtAction(nameof(Create), result.Value)

@@ -50,18 +50,31 @@ public class GetDashboardHandler : IRequestHandler<GetDashboardQuery, Result<Das
             : Math.Round((currentTotal - previousTotal) / previousTotal * 100, 1);
 
         // ── 4. Métodos de pago ────────────────────────────────────────────────
-        var totalCash = completed
-            .Where(o => o.PaymentMethod == PaymentMethod.Cash)
-            .Sum(o => o.Total);
-        var totalCard = completed
-            .Where(o => o.PaymentMethod == PaymentMethod.Card)
-            .Sum(o => o.Total);
-        var totalTransfer = completed
-            .Where(o => o.PaymentMethod == PaymentMethod.Transfer)
-            .Sum(o => o.Total);
+        // Cobros de deudas pagados en el período
+        var paidDebts        = await _debts.GetPaidInRangeAsync(q.From, q.To, ct);
+        var debtPaidCash     = paidDebts.Where(d => d.PaidWithMethod == PaymentMethod.Cash).Sum(d => d.Amount);
+        var debtPaidCard     = paidDebts.Where(d => d.PaidWithMethod == PaymentMethod.Card).Sum(d => d.Amount);
+        var debtPaidTransfer = paidDebts.Where(d => d.PaidWithMethod == PaymentMethod.Transfer).Sum(d => d.Amount);
+        var totalDebtPayments = paidDebts.Sum(d => d.Amount);
+
+        // Anticipos de órdenes PayLater clasificados por su método de pago real
+        var payLaterOrders   = completed.Where(o => o.PaymentMethod == PaymentMethod.PayLater).ToList();
+        var advCash          = payLaterOrders.Where(o => o.AdvancePaymentMethod == PaymentMethod.Cash     || o.AdvancePaymentMethod == null).Sum(o => o.CashReceived);
+        var advCard          = payLaterOrders.Where(o => o.AdvancePaymentMethod == PaymentMethod.Card).Sum(o => o.CashReceived);
+        var advTransfer      = payLaterOrders.Where(o => o.AdvancePaymentMethod == PaymentMethod.Transfer).Sum(o => o.CashReceived);
+
+        // Totales reales por método (ventas + anticipos por método + cobros de deuda)
+        var totalCash     = completed.Where(o => o.PaymentMethod == PaymentMethod.Cash).Sum(o => o.Total)
+                          + advCash + debtPaidCash;
+        var totalCard     = completed.Where(o => o.PaymentMethod == PaymentMethod.Card).Sum(o => o.Total)
+                          + advCard + debtPaidCard;
+        var totalTransfer = completed.Where(o => o.PaymentMethod == PaymentMethod.Transfer).Sum(o => o.Total)
+                          + advTransfer + debtPaidTransfer;
+
+        // Crédito real = deuda nueva creada (total − anticipo ya recibido)
         var totalCredit = completed
             .Where(o => o.PaymentMethod == PaymentMethod.PayLater)
-            .Sum(o => o.Total);
+            .Sum(o => o.Total - o.CashReceived);
 
         // ── 5. Ventas por día ─────────────────────────────────────────────────
         var salesByDay = completed
@@ -154,6 +167,7 @@ public class GetDashboardHandler : IRequestHandler<GetDashboardQuery, Result<Das
             BestSellingProductRevenue: bestProduct != null
                                           ? Math.Round(bestProduct.TotalRevenue, 2)
                                           : 0,
+            TotalDebtPayments: Math.Round(totalDebtPayments, 2),
             SalesByDay: salesByDay,
             TopProducts: topProducts,
             TopCustomers: topCustomers,
