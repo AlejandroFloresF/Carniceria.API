@@ -13,7 +13,8 @@ public record CreateOrderCommand(
     PaymentMethod PaymentMethod,
     decimal CashReceived,
     Guid? CustomerId,
-    string? DebtNote = null
+    string? DebtNote = null,
+    decimal AdvancePayment = 0
 ) : IRequest<Result<TicketDto>>;
 
 public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<TicketDto>>
@@ -110,7 +111,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
 
             try
             {
-                order.ConfirmPayLater(customer.Id, customer.Name);
+                order.ConfirmPayLater(customer.Id, customer.Name, cmd.AdvancePayment);
             }
             catch (DomainException ex)
             {
@@ -138,14 +139,18 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
 
         if (cmd.PaymentMethod == PaymentMethod.PayLater && customer is not null)
         {
-            var debt = CustomerDebt.Create(
-                customer.Id,
-                customer.Name,
-                order.Id,
-                folio,
-                order.Total,
-                cmd.DebtNote);
-            await _debts.AddAsync(debt, ct);
+            var debtAmount = order.Total - cmd.AdvancePayment;
+            if (debtAmount > 0)
+            {
+                var debt = CustomerDebt.Create(
+                    customer.Id,
+                    customer.Name,
+                    order.Id,
+                    folio,
+                    debtAmount,
+                    cmd.DebtNote);
+                await _debts.AddAsync(debt, ct);
+            }
         }
 
         var dto = new TicketDto(

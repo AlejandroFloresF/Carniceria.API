@@ -35,12 +35,17 @@ public class CustomerDebt : BaseEntity
         };
     }
 
-    public void MarkAsPaid()
+    public PaymentMethod? PaidWithMethod { get; private set; }
+    public decimal PaidCashReceived { get; private set; }
+
+    public void MarkAsPaid(PaymentMethod method, decimal cashReceived)
     {
         if (Status == DebtStatus.Paid)
             throw new DomainException("Debt is already paid.");
         Status = DebtStatus.Paid;
         PaidAt = DateTime.UtcNow;
+        PaidWithMethod = method;
+        PaidCashReceived = cashReceived;
         SetUpdated();
     }
 }

@@ -25,7 +25,8 @@ public record UpdateCustomerRequest(
     string? Emoji = null
 );
 
-public record SetPriceRequest(decimal CustomPrice);  // ← faltaba este
+public record SetPriceRequest(decimal CustomPrice);
+public record PayDebtRequest(string PaymentMethod, decimal CashReceived);
 
 [ApiController]
 [Route("api/[controller]")]
@@ -101,10 +102,13 @@ public class CustomersController : ControllerBase
 
     // POST /api/customers/debts/:debtId/pay
     [HttpPost("debts/{debtId:guid}/pay")]
-    public async Task<IActionResult> PayDebt(Guid debtId)
+    public async Task<IActionResult> PayDebt(Guid debtId, [FromBody] PayDebtRequest req)
     {
-        var result = await _mediator.Send(new MarkDebtAsPaidCommand(debtId));
-        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+        if (!Enum.TryParse<Carniceria.Domain.Entities.PaymentMethod>(req.PaymentMethod, out var method))
+            return BadRequest(new { error = "Invalid payment method." });
+
+        var result = await _mediator.Send(new MarkDebtAsPaidCommand(debtId, method, req.CashReceived));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
     // DELETE /api/customers/:id
     [HttpDelete("{id:guid}")]

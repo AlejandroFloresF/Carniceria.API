@@ -73,15 +73,17 @@ public class Order : BaseEntity
         SetUpdated();
     }
 
-    public void ConfirmPayLater(Guid customerId, string customerName)
+    public void ConfirmPayLater(Guid customerId, string customerName, decimal advancePayment = 0)
     {
         if (!_items.Any()) throw new DomainException("Cannot confirm an empty order.");
         if (customerId == Guid.Empty)
             throw new DomainException("PayLater requires a registered customer.");
+        if (advancePayment < 0 || advancePayment >= Total)
+            throw new DomainException("Advance payment must be between 0 and the total.");
         CustomerId = customerId;
         CustomerName = customerName;
         PaymentMethod = PaymentMethod.PayLater;
-        CashReceived = 0;
+        CashReceived = advancePayment;
         Status = OrderStatus.Completed;
         SetUpdated();
     }

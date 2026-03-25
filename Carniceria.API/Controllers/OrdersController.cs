@@ -13,7 +13,8 @@ public record CreateOrderRequest(
     PaymentMethod PaymentMethod,
     decimal CashReceived,
     Guid? CustomerId,
-    string? DebtNote = null
+    string? DebtNote = null,
+    decimal AdvancePayment = 0
 );
 
 [ApiController]
@@ -33,7 +34,8 @@ public class OrdersController : ControllerBase
             req.PaymentMethod,
             req.CashReceived,
             req.CustomerId,
-            req.DebtNote
+            req.DebtNote,
+            req.AdvancePayment
         ));
         return result.IsSuccess
             ? CreatedAtAction(nameof(Create), result.Value)
