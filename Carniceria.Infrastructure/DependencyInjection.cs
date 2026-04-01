@@ -19,7 +19,9 @@ public static class DependencyInjection
         services.AddScoped<ICustomerDebtRepository, CustomerDebtRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
-        services.AddScoped<ICustomerProductPriceRepository, CustomerProductPriceRepository>();  // ← faltaba
+        services.AddScoped<ICustomerProductPriceRepository, CustomerProductPriceRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IExpenseRepository, ExpenseRepository>();
         return services;
     }
 }

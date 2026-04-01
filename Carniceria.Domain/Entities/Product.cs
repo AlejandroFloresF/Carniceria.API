@@ -8,13 +8,14 @@ public class Product : BaseEntity
     public string Unit { get; private set; } = "kg";
     public decimal StockKg { get; private set; }
     public bool IsActive { get; private set; } = true;
+    public string? Barcode { get; private set; }
     private Product() { }
-    public static Product Create(string name, string category, decimal price, string unit, decimal stock)
+    public static Product Create(string name, string category, decimal price, string unit, decimal stock, string? barcode = null)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Product name is required.");
         if (price <= 0) throw new DomainException("Price must be greater than zero.");
         if (stock < 0) throw new DomainException("Stock cannot be negative.");
-        return new Product { Name = name, Category = category, PricePerUnit = price, Unit = unit, StockKg = stock };
+        return new Product { Name = name, Category = category, PricePerUnit = price, Unit = unit, StockKg = stock, Barcode = barcode };
     }
     public void DeductStock(decimal qty)
     {
@@ -29,7 +30,7 @@ public class Product : BaseEntity
         PricePerUnit = newPrice;
         SetUpdated();
     }
-    public void Update(string name, string category, decimal price, string unit)
+    public void Update(string name, string category, decimal price, string unit, string? barcode = null)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Product name is required.");
         if (price <= 0) throw new DomainException("Price must be greater than zero.");
@@ -37,6 +38,7 @@ public class Product : BaseEntity
         Category = category;
         PricePerUnit = price;
         Unit = unit;
+        Barcode = barcode;
         SetUpdated();
     }
     public void Deactivate() { IsActive = false; SetUpdated(); }

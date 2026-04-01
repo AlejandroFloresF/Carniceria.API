@@ -154,6 +154,19 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
             }
         }
 
+        // Actualiza el efectivo en caja según el método de pago
+        decimal cashInflow = cmd.PaymentMethod switch
+        {
+            PaymentMethod.Cash    => order.Total,
+            PaymentMethod.PayLater when cmd.AdvancePaymentMethod == PaymentMethod.Cash => cmd.AdvancePayment,
+            _                    => 0m,
+        };
+        if (cashInflow > 0)
+        {
+            session.AddCash(cashInflow);
+            await _sessions.SaveChangesAsync(ct);
+        }
+
         var dto = new TicketDto(
             ticket.Id,
             ticket.Folio,

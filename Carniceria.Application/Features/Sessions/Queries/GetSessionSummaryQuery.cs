@@ -47,7 +47,7 @@ public class GetSessionSummaryHandler : IRequestHandler<GetSessionSummaryQuery, 
             completed.Count, completed.Sum(o => o.Total),
             totalCash, totalCard, totalTransfer,
             completed.Sum(o => o.DiscountAmount), session.OpeningCash,
-            session.OpeningCash + totalCash,
+            session.CurrentCash,
             totalDebtPayments));
     }
 }

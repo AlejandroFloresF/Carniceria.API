@@ -2,6 +2,7 @@ using Carniceria.Application.Common;
 using Carniceria.Application.Features.Orders.Commands;
 using Carniceria.Domain.Entities;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Carniceria.API.Controllers;
@@ -49,6 +50,7 @@ public class OrdersController : ControllerBase
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("list")]
     public async Task<IActionResult> List(
     [FromQuery] DateTime? from,

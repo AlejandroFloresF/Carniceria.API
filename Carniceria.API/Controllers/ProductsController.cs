@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Carniceria.API.Controllers;
 
 public record UpdatePriceRequest(decimal NewPrice);
-public record CreateProductRequest(string Name, string Category, decimal Price, string Unit);
-public record UpdateProductRequest(string Name, string Category, decimal Price, string Unit);
+public record CreateProductRequest(string Name, string Category, decimal Price, string Unit, string? Barcode = null);
+public record UpdateProductRequest(string Name, string Category, decimal Price, string Unit, string? Barcode = null);
 
 [ApiController]
 [Route("api/[controller]")]
@@ -39,6 +39,7 @@ public class ProductsController : ControllerBase
             unit         = p.Unit,
             stockKg      = p.StockKg,
             isActive     = p.IsActive,
+            barcode      = p.Barcode,
         }));
     }
 
@@ -54,7 +55,7 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateProductRequest req)
     {
-        var result = await _mediator.Send(new CreateProductCommand(req.Name, req.Category, req.Price, req.Unit));
+        var result = await _mediator.Send(new CreateProductCommand(req.Name, req.Category, req.Price, req.Unit, req.Barcode));
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
@@ -62,7 +63,7 @@ public class ProductsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest req)
     {
-        var result = await _mediator.Send(new UpdateProductCommand(id, req.Name, req.Category, req.Price, req.Unit));
+        var result = await _mediator.Send(new UpdateProductCommand(id, req.Name, req.Category, req.Price, req.Unit, req.Barcode));
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
     }
 

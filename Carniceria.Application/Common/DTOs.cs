@@ -121,6 +121,26 @@ public record TicketDto(
     PaymentMethod PaymentMethod,
     string? CustomerName
 );
+// ── Gastos ───────────────────────────────────────────────
+public record ScheduledExpenseDto(
+    Guid Id, string Name, string? Description, decimal Amount,
+    string Category, string Recurrence, DateTime NextDueDate,
+    int AlertDaysBefore, bool IsActive, bool IsOverdue, bool IsUpcoming
+);
+public record ExpenseRequestDto(
+    Guid Id, string Description, decimal Amount, string Category,
+    string Status, string RequestedBy, Guid? SessionId, Guid? ScheduledExpenseId,
+    string? ReviewedBy, string? DenyReason, string? Notes,
+    DateTime RequestedAt, DateTime? ReviewedAt
+);
+public record ExpenseNotificationItemDto(
+    string Type, string Title, string Subtitle, Guid? ReferenceId, string Severity
+);
+public record ExpenseNotificationsDto(
+    int PendingRequestsCount, int UpcomingExpensesCount,
+    List<ExpenseNotificationItemDto> Items
+);
+
 // ── Inventario ───────────────────────────────────────────
 
 public record InventoryEntryDto(
@@ -165,6 +185,7 @@ public record StockStatusDto(
     Guid ProductId,
     string ProductName,
     string Category,
+    string Unit,
     decimal CurrentStockKg,
     decimal MinimumStockKg,
     bool IsBelowMinimum,

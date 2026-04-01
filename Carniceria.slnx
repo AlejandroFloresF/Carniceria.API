@@ -3,4 +3,5 @@
   <Project Path="Carniceria.Application/Carniceria.Application.csproj" />
   <Project Path="Carniceria.Domain/Carniceria.Domain.csproj" />
   <Project Path="Carniceria.Infrastructure/Carniceria.Infrastructure.csproj" />
+  <Project Path="Carniceria.Tests/Carniceria.Tests.csproj" />
 </Solution>

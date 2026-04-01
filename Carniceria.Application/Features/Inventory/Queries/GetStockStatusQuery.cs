@@ -52,6 +52,7 @@ public class GetStockStatusHandler : IRequestHandler<GetStockStatusQuery, Result
 
             return new StockStatusDto(
                 p.Id, p.Name, p.Category,
+                Unit: p.Unit,
                 CurrentStockKg: p.StockKg,
                 MinimumStockKg: minKg,
                 IsBelowMinimum: minKg > 0 && p.StockKg < minKg,

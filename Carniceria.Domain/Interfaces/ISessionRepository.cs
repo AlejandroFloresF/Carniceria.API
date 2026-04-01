@@ -9,6 +9,7 @@ public interface ISessionRepository
     Task<List<string>> GetDistinctCashiersAsync(CancellationToken ct = default);
     Task<CashierSession?> GetOpenSessionByCashierAsync(
     string cashierName, CancellationToken ct = default);
+    Task<CashierSession?> GetAnyOpenSessionAsync(CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 
 

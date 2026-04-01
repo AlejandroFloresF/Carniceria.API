@@ -9,7 +9,8 @@ public record CreateProductCommand(
     string Name,
     string Category,
     decimal Price,
-    string Unit
+    string Unit,
+    string? Barcode = null
 ) : IRequest<Result<Guid>>;
 
 public class CreateProductHandler : IRequestHandler<CreateProductCommand, Result<Guid>>
@@ -21,7 +22,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Result
     {
         try
         {
-            var product = Product.Create(cmd.Name, cmd.Category, cmd.Price, cmd.Unit, 0);
+            var product = Product.Create(cmd.Name, cmd.Category, cmd.Price, cmd.Unit, 0, cmd.Barcode);
             await _products.AddAsync(product, ct);
             return Result.Ok(product.Id);
         }

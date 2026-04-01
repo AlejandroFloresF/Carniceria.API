@@ -5,6 +5,15 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
+        // Admin user (solo si no existe ningún usuario)
+        if (!await db.AppUsers.AnyAsync())
+        {
+            var hash  = BCrypt.Net.BCrypt.HashPassword("admin1234");
+            var admin = AppUser.Create("admin", hash, UserRole.Admin);
+            await db.AppUsers.AddAsync(admin);
+            await db.SaveChangesAsync();
+        }
+
         if (!await db.Products.AnyAsync())
         {
             var products = new List<Product>

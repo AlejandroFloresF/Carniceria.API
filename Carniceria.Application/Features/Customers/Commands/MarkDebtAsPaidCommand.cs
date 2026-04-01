@@ -17,15 +17,18 @@ public class MarkDebtAsPaidHandler : IRequestHandler<MarkDebtAsPaidCommand, Resu
     private readonly ICustomerDebtRepository _debts;
     private readonly ITicketRepository _tickets;
     private readonly IOrderRepository _orders;
+    private readonly ISessionRepository _sessions;
 
     public MarkDebtAsPaidHandler(
         ICustomerDebtRepository debts,
         ITicketRepository tickets,
-        IOrderRepository orders)
+        IOrderRepository orders,
+        ISessionRepository sessions)
     {
-        _debts   = debts;
-        _tickets = tickets;
-        _orders  = orders;
+        _debts    = debts;
+        _tickets  = tickets;
+        _orders   = orders;
+        _sessions = sessions;
     }
 
     public async Task<Result<TicketDto>> Handle(MarkDebtAsPaidCommand cmd, CancellationToken ct)
@@ -39,6 +42,17 @@ public class MarkDebtAsPaidHandler : IRequestHandler<MarkDebtAsPaidCommand, Resu
             await _debts.SaveChangesAsync(ct);
         }
         catch (DomainException ex) { return Result.Fail<TicketDto>(ex.Message); }
+
+        // Si se pagó en efectivo, actualiza CurrentCash de la sesión abierta
+        if (cmd.PaymentMethod == PaymentMethod.Cash)
+        {
+            var session = await _sessions.GetAnyOpenSessionAsync(ct);
+            if (session is not null)
+            {
+                session.AddCash(debt.Amount);
+                await _sessions.SaveChangesAsync(ct);
+            }
+        }
 
         // Obtiene el ticket original para construir el recibo de pago
         var ticket = await _tickets.GetByOrderIdAsync(debt.OrderId, ct);

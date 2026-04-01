@@ -9,7 +9,8 @@ public record UpdateProductCommand(
     string Name,
     string Category,
     decimal Price,
-    string Unit
+    string Unit,
+    string? Barcode = null
 ) : IRequest<Result<bool>>;
 
 public class UpdateProductHandler : IRequestHandler<UpdateProductCommand, Result<bool>>
@@ -23,7 +24,7 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductCommand, Result
         if (product is null) return Result.Fail<bool>("Product not found.");
         try
         {
-            product.Update(cmd.Name, cmd.Category, cmd.Price, cmd.Unit);
+            product.Update(cmd.Name, cmd.Category, cmd.Price, cmd.Unit, cmd.Barcode);
             await _products.SaveChangesAsync(ct);
             return Result.Ok(true);
         }
