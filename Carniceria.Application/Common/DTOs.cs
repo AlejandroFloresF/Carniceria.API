@@ -114,7 +114,6 @@ public record TicketDto(
     List<TicketItemDto> Items,
     decimal Subtotal,
     decimal DiscountAmount,
-    decimal TaxAmount,
     decimal Total,
     decimal CashReceived,
     decimal Change,

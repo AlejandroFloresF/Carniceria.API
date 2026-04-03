@@ -133,7 +133,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
 
         var folioNumber = await _tickets.GetNextFolioNumberAsync(ct);
         var folio = folioNumber.ToString().PadLeft(5, '0');
-        var ticket = Ticket.Generate(order, session.CashierName, "Carnicería La Única", folio);
+        var ticket = Ticket.Generate(order, session.CashierName, "GRADILLA 100% EST 1938", folio);
 
         await _orders.AddAsync(order, ct);
         await _tickets.AddAsync(ticket, ct);
@@ -184,7 +184,6 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
             )).ToList(),
             ticket.Subtotal,
             ticket.DiscountAmount,
-            ticket.TaxAmount,
             ticket.Total,
             ticket.CashReceived,
             ticket.Change,

@@ -40,11 +40,12 @@ public class ScheduledExpense : BaseEntity
     {
         NextDueDate = Recurrence switch
         {
-            "Weekly"   => NextDueDate.AddDays(7),
-            "Biweekly" => NextDueDate.AddDays(14),
-            "Monthly"  => NextDueDate.AddMonths(1),
-            "Annual"   => NextDueDate.AddYears(1),
-            _          => NextDueDate
+            "Weekly"     => NextDueDate.AddDays(7),
+            "Biweekly"   => NextDueDate.AddDays(14),
+            "Monthly"    => NextDueDate.AddMonths(1),
+            "Bimonthly"  => NextDueDate.AddMonths(2),
+            "Annual"     => NextDueDate.AddYears(1),
+            _            => NextDueDate
         };
         SetUpdated();
     }

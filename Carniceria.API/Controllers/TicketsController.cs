@@ -60,7 +60,6 @@ public class TicketsController : ControllerBase
         customerName = t.CustomerName,
         subtotal = t.Subtotal,
         discountAmount = t.DiscountAmount,
-        taxAmount = t.TaxAmount,
         total = t.Total,
         cashReceived = t.CashReceived,
         change = t.Change,

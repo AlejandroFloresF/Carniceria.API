@@ -77,7 +77,6 @@ public class MarkDebtAsPaidHandler : IRequestHandler<MarkDebtAsPaidCommand, Resu
             )).ToList(),
             ticket.Subtotal,
             ticket.DiscountAmount,
-            ticket.TaxAmount,
             debt.Amount,
             cmd.PaymentMethod == PaymentMethod.Cash ? cmd.CashReceived : debt.Amount,
             change,

@@ -9,7 +9,6 @@ public class Ticket : BaseEntity
     public string ShopName { get; private set; } = string.Empty;
     public decimal Subtotal { get; private set; }
     public decimal DiscountAmount { get; private set; }
-    public decimal TaxAmount { get; private set; }
     public decimal Total { get; private set; }
     public decimal CashReceived { get; private set; }
     public decimal Change { get; private set; }
@@ -27,7 +26,6 @@ public class Ticket : BaseEntity
            ShopName = shopName,
            Subtotal = order.Subtotal,
            DiscountAmount = order.DiscountAmount,
-           TaxAmount = order.TaxAmount,
            Total = order.Total,
            CashReceived = order.CashReceived,
            Change = order.PaymentMethod == PaymentMethod.Cash

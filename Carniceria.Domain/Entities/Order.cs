@@ -21,7 +21,6 @@ public class Order : BaseEntity
     public decimal Subtotal => _items.Sum(i => i.UnitPrice * i.Quantity);
     public decimal DiscountAmount => Math.Round(Subtotal * (DiscountPercent / 100), 2);
     public decimal Total => Math.Round(Subtotal - DiscountAmount, 2);
-    public decimal TaxAmount => Math.Round(Total * 16m / 116m, 2);
 
     private Order() { }
 
