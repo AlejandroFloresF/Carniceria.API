@@ -3,6 +3,7 @@ using Carniceria.Domain.Common;
 using Carniceria.Domain.Entities;
 using Carniceria.Domain.Interfaces;
 using MediatR;
+using System.Collections.Generic;
 
 namespace Carniceria.Application.Features.Orders.Commands;
 
@@ -15,7 +16,10 @@ public record CreateOrderCommand(
     Guid? CustomerId,
     string? DebtNote = null,
     decimal AdvancePayment = 0,
-    PaymentMethod? AdvancePaymentMethod = null
+    PaymentMethod? AdvancePaymentMethod = null,
+    Guid? SourceCustomerOrderId = null,
+    PaymentMethod? SecondaryPaymentMethod = null,
+    decimal SecondaryAmount = 0
 ) : IRequest<Result<TicketDto>>;
 
 public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<TicketDto>>
@@ -27,6 +31,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
     private readonly ICustomerRepository _customers;
     private readonly ICustomerDebtRepository _debts;
     private readonly ICustomerProductPriceRepository _prices;
+    private readonly ICustomerOrderRepository _customerOrders;
 
     public CreateOrderHandler(
         IOrderRepository orders,
@@ -35,7 +40,8 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         ISessionRepository sessions,
         ICustomerRepository customers,
         ICustomerDebtRepository debts,
-        ICustomerProductPriceRepository prices)
+        ICustomerProductPriceRepository prices,
+        ICustomerOrderRepository customerOrders)
     {
         _orders = orders;
         _products = products;
@@ -44,6 +50,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         _customers = customers;
         _debts = debts;
         _prices = prices;
+        _customerOrders = customerOrders;
     }
 
     public async Task<Result<TicketDto>> Handle(CreateOrderCommand cmd, CancellationToken ct)
@@ -74,13 +81,31 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         // ── 3. Construye la orden ────────────────────────────
         var order = Order.Create(cmd.CashierSessionId);
 
+        // Reservas de pedidos: calcula stock disponible descontando lo reservado
+        // a otros clientes (la reserva del mismo cliente no bloquea su propia venta).
+        var totalReserved   = await _customerOrders.GetTotalReservedByProductAsync(ct);
+        var selfReserved    = cmd.CustomerId.HasValue
+            ? await _customerOrders.GetReservedByProductForCustomerAsync(cmd.CustomerId.Value, ct)
+            : new Dictionary<Guid, decimal>();
+
         foreach (var item in cmd.Items)
         {
             var product = await _products.GetByIdAsync(item.ProductId, ct);
             if (product is null)
                 return Result.Fail<TicketDto>($"Product {item.ProductId} not found.");
-            if (product.StockKg < item.Quantity)
-                return Result.Fail<TicketDto>($"Insufficient stock for {product.Name}.");
+
+            var totalRes = totalReserved.GetValueOrDefault(product.Id, 0m);
+            var selfRes  = selfReserved.GetValueOrDefault(product.Id, 0m);
+            var othersRes = Math.Max(0m, totalRes - selfRes);
+            var available = product.StockKg - othersRes;
+
+            if (available < item.Quantity)
+            {
+                var msg = othersRes > 0
+                    ? $"Stock insuficiente para {product.Name}. Disponible: {available:F3} kg ({othersRes:F3} kg reservado para pedidos de otros clientes)."
+                    : $"Insufficient stock for {product.Name}.";
+                return Result.Fail<TicketDto>(msg);
+            }
 
             // Si el cliente tiene precio especial para este producto, lo aplica
             if (customPriceMap.TryGetValue(product.Id, out var customPrice))
@@ -105,6 +130,10 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
             order.ApplyDiscount(cmd.DiscountPercent);
         }
 
+        // ── 4b. Marca origen pedido si aplica ───────────────
+        if (cmd.SourceCustomerOrderId.HasValue)
+            order.MarkAsFromCustomerOrder(cmd.SourceCustomerOrderId.Value);
+
         if (cmd.PaymentMethod == PaymentMethod.PayLater)
         {
             if (customer is null)
@@ -113,6 +142,17 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
             try
             {
                 order.ConfirmPayLater(customer.Id, customer.Name, cmd.AdvancePayment, cmd.AdvancePaymentMethod);
+            }
+            catch (DomainException ex)
+            {
+                return Result.Fail<TicketDto>(ex.Message);
+            }
+        }
+        else if (cmd.SecondaryPaymentMethod.HasValue && cmd.SecondaryAmount > 0)
+        {
+            try
+            {
+                order.ConfirmSplit(cmd.CashReceived, cmd.SecondaryPaymentMethod.Value, cmd.SecondaryAmount);
             }
             catch (DomainException ex)
             {
@@ -155,12 +195,16 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         }
 
         // Actualiza el efectivo en caja según el método de pago
-        decimal cashInflow = cmd.PaymentMethod switch
-        {
-            PaymentMethod.Cash    => order.Total,
-            PaymentMethod.PayLater when cmd.AdvancePaymentMethod == PaymentMethod.Cash => cmd.AdvancePayment,
-            _                    => 0m,
-        };
+        decimal cashInflow;
+        if (order.SecondaryPaymentMethod.HasValue)
+            cashInflow = order.CashReceived;  // pago mixto: solo la parte en efectivo
+        else
+            cashInflow = cmd.PaymentMethod switch
+            {
+                PaymentMethod.Cash    => order.Total,
+                PaymentMethod.PayLater when cmd.AdvancePaymentMethod == PaymentMethod.Cash => cmd.AdvancePayment,
+                _                    => 0m,
+            };
         if (cashInflow > 0)
         {
             session.AddCash(cashInflow);
@@ -188,7 +232,9 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
             ticket.CashReceived,
             ticket.Change,
             ticket.PaymentMethod,
-            ticket.CustomerName
+            ticket.CustomerName,
+            order.SecondaryPaymentMethod,
+            order.SecondaryAmount
         );
 
         return Result.Ok(dto);

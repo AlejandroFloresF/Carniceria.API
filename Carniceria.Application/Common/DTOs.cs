@@ -5,7 +5,7 @@ public record ProductDto(Guid Id, string Name, string Category, decimal PricePer
 public record OrderItemInputDto(Guid ProductId, decimal Quantity);
 public record TicketItemDto(Guid ProductId, string ProductName, decimal Quantity, string Unit, decimal UnitPrice, decimal Total);
 public record CashierSessionDto(Guid SessionId, string CashierName, DateTime OpenedAt, decimal openingCash);
-public record SessionSummaryDto(Guid SessionId, string CashierName, DateTime OpenedAt, DateTime? ClosedAt, int TotalOrders, decimal TotalSales, decimal TotalCash, decimal TotalCard, decimal TotalTransfer, decimal TotalDiscounts, decimal OpeningCash, decimal ExpectedCash, decimal TotalDebtPayments);
+public record SessionSummaryDto(Guid SessionId, string CashierName, DateTime OpenedAt, DateTime? ClosedAt, int TotalOrders, decimal TotalSales, decimal TotalCash, decimal TotalCard, decimal TotalTransfer, decimal TotalDiscounts, decimal OpeningCash, decimal ExpectedCash, decimal TotalDebtPayments, decimal TotalExpenses = 0);
 public record CustomerDto(
     Guid Id,
     string Name,
@@ -118,7 +118,9 @@ public record TicketDto(
     decimal CashReceived,
     decimal Change,
     PaymentMethod PaymentMethod,
-    string? CustomerName
+    string? CustomerName,
+    PaymentMethod? SecondaryPaymentMethod = null,
+    decimal SecondaryAmount = 0
 );
 // ── Gastos ───────────────────────────────────────────────
 public record ScheduledExpenseDto(
@@ -139,6 +141,32 @@ public record ExpenseNotificationsDto(
     int PendingRequestsCount, int UpcomingExpensesCount,
     List<ExpenseNotificationItemDto> Items
 );
+
+// ── Pedidos de clientes ──────────────────────────────────
+
+public record CustomerOrderItemDto(Guid ProductId, string ProductName, decimal QuantityKg);
+
+public record CustomerOrderDto(
+    Guid Id,
+    Guid CustomerId,
+    string CustomerName,
+    string Recurrence,
+    DateTime NextDeliveryDate,
+    List<CustomerOrderItemDto> Items,
+    string? Notes,
+    bool IsActive,
+    bool IsUpcoming,          // delivery within 3 days
+    bool HasStockShortage     // any item below required qty
+);
+
+public record StockShortageItemDto(
+    Guid ProductId, string ProductName,
+    decimal RequiredKg, decimal AvailableKg);
+
+public record StockShortageOrderDto(
+    Guid OrderId, Guid CustomerId, string CustomerName,
+    DateTime NextDeliveryDate, string Recurrence,
+    List<StockShortageItemDto> ShortageItems);
 
 // ── Inventario ───────────────────────────────────────────
 

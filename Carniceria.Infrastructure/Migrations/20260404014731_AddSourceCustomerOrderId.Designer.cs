@@ -3,6 +3,7 @@ using System;
 using Carniceria.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Carniceria.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260404014731_AddSourceCustomerOrderId")]
+    partial class AddSourceCustomerOrderId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -460,15 +463,6 @@ namespace Carniceria.Infrastructure.Migrations
                         .HasColumnType("numeric(5,2)");
 
                     b.Property<int>("PaymentMethod")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("SecondaryAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<int?>("SecondaryPaymentMethod")
                         .HasColumnType("integer");
 
                     b.Property<Guid?>("SourceCustomerOrderId")

@@ -64,10 +64,38 @@ public class Order : BaseEntity
     public void Confirm(PaymentMethod method, decimal cashReceived)
     {
         if (!_items.Any()) throw new DomainException("Cannot confirm an empty order.");
-        if (method == PaymentMethod.Cash && cashReceived < Total)
-            throw new DomainException("Cash received is less than total.");
+        // Tolerancia de 1 centavo para absorber diferencias de redondeo float→decimal
+        if (method == PaymentMethod.Cash && cashReceived < Total - 0.01m)
+            throw new DomainException($"Monto recibido (${cashReceived:F2}) es menor al total (${Total:F2}).");
         PaymentMethod = method;
         CashReceived = cashReceived;
+        Status = OrderStatus.Completed;
+        SetUpdated();
+    }
+
+    /// <summary>Set when this sale was generated from a registered customer order (pedido).</summary>
+    public Guid? SourceCustomerOrderId { get; private set; }
+
+    public void MarkAsFromCustomerOrder(Guid customerOrderId)
+    {
+        SourceCustomerOrderId = customerOrderId;
+    }
+
+    /// <summary>Second payment method when the customer pays with two methods (e.g. Cash + Transfer).</summary>
+    public PaymentMethod? SecondaryPaymentMethod { get; private set; }
+    public decimal SecondaryAmount { get; private set; }
+
+    public void ConfirmSplit(decimal cashAmount, PaymentMethod secondaryMethod, decimal secondaryAmount)
+    {
+        if (!_items.Any()) throw new DomainException("Cannot confirm an empty order.");
+        if (secondaryMethod == PaymentMethod.Cash || secondaryMethod == PaymentMethod.PayLater)
+            throw new DomainException("El método secundario no puede ser Efectivo o A crédito.");
+        if (cashAmount + secondaryAmount < Total - 0.01m)
+            throw new DomainException($"El total de los pagos (${cashAmount + secondaryAmount:F2}) es menor al total de la orden (${Total:F2}).");
+        PaymentMethod = PaymentMethod.Cash;
+        CashReceived = cashAmount;
+        SecondaryPaymentMethod = secondaryMethod;
+        SecondaryAmount = secondaryAmount;
         Status = OrderStatus.Completed;
         SetUpdated();
     }

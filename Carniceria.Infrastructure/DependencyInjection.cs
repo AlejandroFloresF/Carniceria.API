@@ -2,6 +2,7 @@ using Carniceria.Domain.Interfaces;
 using Carniceria.Infrastructure.Persistence;
 using Carniceria.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 namespace Carniceria.Infrastructure;
@@ -10,7 +11,9 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Default"), b => b.MigrationsAssembly("Carniceria.Infrastructure")));
+            options
+                .UseNpgsql(configuration.GetConnectionString("Default"), b => b.MigrationsAssembly("Carniceria.Infrastructure"))
+                .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
@@ -22,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomerProductPriceRepository, CustomerProductPriceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IExpenseRepository, ExpenseRepository>();
+        services.AddScoped<ICustomerOrderRepository, CustomerOrderRepository>();
         return services;
     }
 }

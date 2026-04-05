@@ -16,7 +16,10 @@ public record CreateOrderRequest(
     Guid? CustomerId,
     string? DebtNote = null,
     decimal AdvancePayment = 0,
-    string? AdvancePaymentMethod = null
+    string? AdvancePaymentMethod = null,
+    Guid? SourceCustomerOrderId = null,
+    string? SecondaryPaymentMethod = null,
+    decimal SecondaryAmount = 0
 );
 
 [ApiController]
@@ -34,6 +37,11 @@ public class OrdersController : ControllerBase
             Enum.TryParse<PaymentMethod>(req.AdvancePaymentMethod, out var parsedAdv))
             advMethod = parsedAdv;
 
+        PaymentMethod? secondaryMethod = null;
+        if (!string.IsNullOrEmpty(req.SecondaryPaymentMethod) &&
+            Enum.TryParse<PaymentMethod>(req.SecondaryPaymentMethod, out var parsedSecondary))
+            secondaryMethod = parsedSecondary;
+
         var result = await _mediator.Send(new CreateOrderCommand(
             req.CashierSessionId,
             req.Items,
@@ -43,7 +51,10 @@ public class OrdersController : ControllerBase
             req.CustomerId,
             req.DebtNote,
             req.AdvancePayment,
-            advMethod
+            advMethod,
+            req.SourceCustomerOrderId,
+            secondaryMethod,
+            req.SecondaryAmount
         ));
         return result.IsSuccess
             ? CreatedAtAction(nameof(Create), result.Value)

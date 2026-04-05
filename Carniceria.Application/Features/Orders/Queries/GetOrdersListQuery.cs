@@ -7,7 +7,9 @@ public record SaleRecordDto(
     string Folio, DateTime CreatedAt, string CustomerName,
     string PaymentMethod, decimal Total, decimal DiscountAmount,
     string CashierName, bool IsDebtPayment,
-    decimal AdvancePayment, decimal PendingDebt
+    decimal AdvancePayment, decimal PendingDebt,
+    bool IsFromCustomerOrder = false,
+    Guid? OrderId = null
 );
 
 public record GetOrdersListQuery(DateTime From, DateTime To, Guid? SessionId)
@@ -52,7 +54,9 @@ public class GetOrdersListHandler : IRequestHandler<GetOrdersListQuery, Result<L
                 ticket?.CashierName ?? "—",
                 false,
                 advanceAmt,
-                pendingAmt
+                pendingAmt,
+                o.SourceCustomerOrderId.HasValue,
+                o.Id
             ));
         }
 
@@ -70,7 +74,8 @@ public class GetOrdersListHandler : IRequestHandler<GetOrdersListQuery, Result<L
                 "—",
                 true,
                 0m,
-                0m
+                0m,
+                OrderId: d.OrderId
             ));
         }
 

@@ -18,11 +18,13 @@ public class AppDbContext : DbContext
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<ScheduledExpense> ScheduledExpenses => Set<ScheduledExpense>();
     public DbSet<ExpenseRequest> ExpenseRequests => Set<ExpenseRequest>();
+    public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
+    public DbSet<CustomerOrderItem> CustomerOrderItems => Set<CustomerOrderItem>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
         mb.Entity<Product>(e => { e.HasKey(x => x.Id); e.Property(x => x.Name).HasMaxLength(100).IsRequired(); e.Property(x => x.PricePerUnit).HasPrecision(18, 2); e.Property(x => x.StockKg).HasPrecision(18, 3); e.HasIndex(x => x.Name); e.Property(x => x.Barcode).HasMaxLength(100); e.HasIndex(x => x.Barcode).IsUnique().HasFilter("\"Barcode\" IS NOT NULL"); });
-        mb.Entity<Order>(e => { e.HasKey(x => x.Id); e.Property(x => x.CustomerName).HasMaxLength(100); e.Property(x => x.DiscountPercent).HasPrecision(5, 2); e.Property(x => x.CashReceived).HasPrecision(18, 2); e.Ignore(x => x.Subtotal); e.Ignore(x => x.DiscountAmount); e.Ignore(x => x.Total); e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade); });
+        mb.Entity<Order>(e => { e.HasKey(x => x.Id); e.Property(x => x.CustomerName).HasMaxLength(100); e.Property(x => x.DiscountPercent).HasPrecision(5, 2); e.Property(x => x.CashReceived).HasPrecision(18, 2); e.Property(x => x.SecondaryAmount).HasPrecision(18, 2).HasDefaultValue(0m); e.Ignore(x => x.Subtotal); e.Ignore(x => x.DiscountAmount); e.Ignore(x => x.Total); e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade); });
         mb.Entity<Ticket>(e => { e.HasKey(x => x.Id); e.Property(x => x.Folio).HasMaxLength(20).IsRequired(); e.HasIndex(x => x.Folio).IsUnique(); e.Property(x => x.Subtotal).HasPrecision(18, 2); e.Property(x => x.DiscountAmount).HasPrecision(18, 2); e.Property(x => x.Total).HasPrecision(18, 2); e.Property(x => x.Change).HasPrecision(18, 2); });
         mb.Entity<CashierSession>(e => { e.HasKey(x => x.Id); e.Property(x => x.CashierName).HasMaxLength(100).IsRequired(); e.Property(x => x.OpeningCash).HasPrecision(18, 2); e.Property(x => x.ClosingCash).HasPrecision(18, 2); });
         mb.Entity<Customer>(e =>
@@ -120,6 +122,27 @@ public class AppDbContext : DbContext
              .HasForeignKey(x => x.ScheduledExpenseId)
              .OnDelete(DeleteBehavior.SetNull);
         });
+        mb.Entity<CustomerOrder>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CustomerName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Recurrence).HasMaxLength(20).HasDefaultValue("None");
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasIndex(x => x.CustomerId);
+            e.HasMany(x => x.Items)
+             .WithOne(i => i.CustomerOrder)
+             .HasForeignKey(i => i.CustomerOrderId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<CustomerOrderItem>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ProductName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.QuantityKg).HasPrecision(18, 3);
+            e.HasIndex(x => new { x.CustomerOrderId, x.ProductId }).IsUnique();
+        });
+
         mb.Entity<AppUser>(e =>
         {
             e.HasKey(x => x.Id);

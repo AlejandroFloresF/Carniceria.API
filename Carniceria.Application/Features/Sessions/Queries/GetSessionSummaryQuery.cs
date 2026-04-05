@@ -9,10 +9,12 @@ public class GetSessionSummaryHandler : IRequestHandler<GetSessionSummaryQuery, 
 {
     private readonly ISessionRepository _sessions;
     private readonly ICustomerDebtRepository _debts;
-    public GetSessionSummaryHandler(ISessionRepository sessions, ICustomerDebtRepository debts)
+    private readonly IExpenseRepository _expenses;
+    public GetSessionSummaryHandler(ISessionRepository sessions, ICustomerDebtRepository debts, IExpenseRepository expenses)
     {
         _sessions = sessions;
         _debts    = debts;
+        _expenses = expenses;
     }
     public async Task<Result<SessionSummaryDto>> Handle(GetSessionSummaryQuery q, CancellationToken ct)
     {
@@ -42,12 +44,15 @@ public class GetSessionSummaryHandler : IRequestHandler<GetSessionSummaryQuery, 
         var totalCard     = completed.Where(o => o.PaymentMethod == PaymentMethod.Card).Sum(o => o.Total) + advCard + debtCard;
         var totalTransfer = completed.Where(o => o.PaymentMethod == PaymentMethod.Transfer).Sum(o => o.Total) + advTransf + debtTransf;
 
+        var totalExpenses = await _expenses.GetApprovedTotalBySessionAsync(q.SessionId, ct);
+
         return Result.Ok(new SessionSummaryDto(
             session.Id, session.CashierName, session.OpenedAt, session.ClosedAt,
             completed.Count, completed.Sum(o => o.Total),
             totalCash, totalCard, totalTransfer,
             completed.Sum(o => o.DiscountAmount), session.OpeningCash,
             session.CurrentCash,
-            totalDebtPayments));
+            totalDebtPayments,
+            totalExpenses));
     }
 }

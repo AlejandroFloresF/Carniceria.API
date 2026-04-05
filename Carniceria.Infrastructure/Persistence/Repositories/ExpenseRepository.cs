@@ -26,6 +26,11 @@ public class ExpenseRepository : IExpenseRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public Task<decimal> GetApprovedTotalBySessionAsync(Guid sessionId, CancellationToken ct) =>
+        _db.ExpenseRequests
+           .Where(r => r.SessionId == sessionId && r.Status == "Approved")
+           .SumAsync(r => r.Amount, ct);
+
     public Task<List<ExpenseRequest>> GetRequestsAsync(string? status, string? requestedBy, CancellationToken ct)
     {
         var q = _db.ExpenseRequests.AsQueryable();
