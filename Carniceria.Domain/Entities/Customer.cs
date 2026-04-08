@@ -12,12 +12,13 @@ public class Customer : BaseEntity
     public bool IsActive { get; private set; } = true;
     public string Color { get; private set; } = "#6366f1";
     public string? Emoji { get; private set; }
+    public string? Notes { get; private set; }
 
 
     private Customer() { }
 
     public static Customer Create(string name, string? phone, string? address,
-        decimal discountPercent, string color = "#6366f1", string? emoji = null)
+        decimal discountPercent, string color = "#6366f1", string? emoji = null, string? notes = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Customer name is required.");
@@ -31,12 +32,13 @@ public class Customer : BaseEntity
             Address = address,
             DiscountPercent = discountPercent,
             Color = color,
-            Emoji = emoji
+            Emoji = emoji,
+            Notes = notes
         };
     }
 
-    public void Update(string name, string? phone, string? address, 
-        decimal discountPercent, string color, string? emoji)
+    public void Update(string name, string? phone, string? address,
+        decimal discountPercent, string color, string? emoji, string? notes = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Customer name is required.");
@@ -47,8 +49,9 @@ public class Customer : BaseEntity
         Phone = phone;
         Address = address;
         DiscountPercent = discountPercent;
-        Color = color; 
-        Emoji = emoji; 
+        Color = color;
+        Emoji = emoji;
+        Notes = notes;
         SetUpdated();
     }
 

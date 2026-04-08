@@ -6,6 +6,8 @@ public record OrderItemInputDto(Guid ProductId, decimal Quantity);
 public record TicketItemDto(Guid ProductId, string ProductName, decimal Quantity, string Unit, decimal UnitPrice, decimal Total);
 public record CashierSessionDto(Guid SessionId, string CashierName, DateTime OpenedAt, decimal openingCash);
 public record SessionSummaryDto(Guid SessionId, string CashierName, DateTime OpenedAt, DateTime? ClosedAt, int TotalOrders, decimal TotalSales, decimal TotalCash, decimal TotalCard, decimal TotalTransfer, decimal TotalDiscounts, decimal OpeningCash, decimal ExpectedCash, decimal TotalDebtPayments, decimal TotalExpenses = 0);
+public record CashMovementDto(DateTime At, string Type, string Description, decimal Amount, Guid? OrderId = null);
+public record ProductPriceHistoryDto(Guid Id, decimal OldPrice, decimal NewPrice, DateTime ChangedAt);
 public record CustomerDto(
     Guid Id,
     string Name,
@@ -14,7 +16,8 @@ public record CustomerDto(
     decimal DiscountPercent,
     decimal TotalDebt,
     string Color,
-    string? Emoji
+    string? Emoji,
+    string? Notes = null
 );
 public record CustomerProductPriceDto(
     Guid ProductId,
@@ -45,7 +48,8 @@ public record CustomerDetailDto(
     string Color,
     string? Emoji,
     List<CustomerDebtDto> PendingDebts,
-    List<CustomerProductPriceDto> CustomPrices
+    List<CustomerProductPriceDto> CustomPrices,
+    string? Notes = null
 );
 
 public record DashboardFiltersDto(

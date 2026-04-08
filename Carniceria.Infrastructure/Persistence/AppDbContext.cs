@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<ExpenseRequest> ExpenseRequests => Set<ExpenseRequest>();
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
     public DbSet<CustomerOrderItem> CustomerOrderItems => Set<CustomerOrderItem>();
+    public DbSet<CashWithdrawal> CashWithdrawals => Set<CashWithdrawal>();
+    public DbSet<ProductPriceHistory> ProductPriceHistory => Set<ProductPriceHistory>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -37,7 +39,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.Name);
             e.Property(x => x.Color).HasMaxLength(7).HasDefaultValue("#6366f1");
             e.Property(x => x.Emoji).HasMaxLength(10);
-
+            e.Property(x => x.Notes).HasMaxLength(1000);
         });
         mb.Entity<InventoryEntry>(e => {
             e.HasKey(x => x.Id);
@@ -141,6 +143,24 @@ public class AppDbContext : DbContext
             e.Property(x => x.ProductName).HasMaxLength(100).IsRequired();
             e.Property(x => x.QuantityKg).HasPrecision(18, 3);
             e.HasIndex(x => new { x.CustomerOrderId, x.ProductId }).IsUnique();
+        });
+
+        mb.Entity<ProductPriceHistory>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ProductName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.OldPrice).HasPrecision(18, 2);
+            e.Property(x => x.NewPrice).HasPrecision(18, 2);
+            e.HasIndex(x => x.ProductId);
+        });
+
+        mb.Entity<CashWithdrawal>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CashierName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Amount).HasPrecision(18, 2);
+            e.Property(x => x.Note).HasMaxLength(300);
+            e.HasIndex(x => x.SessionId);
         });
 
         mb.Entity<AppUser>(e =>

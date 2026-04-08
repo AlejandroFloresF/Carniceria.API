@@ -1,4 +1,5 @@
 ﻿using Carniceria.Domain.Common;
+using Carniceria.Domain.Entities;
 using Carniceria.Domain.Interfaces;
 using MediatR;
 
@@ -13,7 +14,13 @@ public class UpdateProductPriceHandler
     : IRequestHandler<UpdateProductPriceCommand, Result<bool>>
 {
     private readonly IProductRepository _products;
-    public UpdateProductPriceHandler(IProductRepository products) => _products = products;
+    private readonly IProductPriceHistoryRepository _history;
+
+    public UpdateProductPriceHandler(IProductRepository products, IProductPriceHistoryRepository history)
+    {
+        _products = products;
+        _history  = history;
+    }
 
     public async Task<Result<bool>> Handle(UpdateProductPriceCommand cmd, CancellationToken ct)
     {
@@ -22,8 +29,16 @@ public class UpdateProductPriceHandler
 
         try
         {
+            var oldPrice = product.PricePerUnit;
             product.UpdatePrice(cmd.NewPrice);
             await _products.SaveChangesAsync(ct);
+
+            if (oldPrice != cmd.NewPrice)
+            {
+                var entry = ProductPriceHistory.Record(product.Id, product.Name, oldPrice, cmd.NewPrice);
+                await _history.AddAsync(entry, ct);
+            }
+
             return Result.Ok(true);
         }
         catch (DomainException ex) { return Result.Fail<bool>(ex.Message); }

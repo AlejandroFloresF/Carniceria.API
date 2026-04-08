@@ -10,19 +10,21 @@ namespace Carniceria.API.Controllers;
 public record CreateCustomerRequest(
     string Name,
     string? Phone,
-    string? Address,          // ← Address no Email
+    string? Address,
     decimal DiscountPercent,
     string Color = "#6366f1",
-    string? Emoji = null
+    string? Emoji = null,
+    string? Notes = null
 );
 
 public record UpdateCustomerRequest(
     string Name,
     string? Phone,
-    string? Address,          // ← Address no Email
+    string? Address,
     decimal DiscountPercent,
     string Color = "#6366f1",
-    string? Emoji = null
+    string? Emoji = null,
+    string? Notes = null
 );
 
 public record SetPriceRequest(decimal CustomPrice);
@@ -59,7 +61,7 @@ public class CustomersController : ControllerBase
         var result = await _mediator.Send(
             new CreateCustomerCommand(
                 req.Name, req.Phone, req.Address,
-                req.DiscountPercent, req.Color, req.Emoji));
+                req.DiscountPercent, req.Color, req.Emoji, req.Notes));
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(new { error = result.Error });
@@ -72,7 +74,7 @@ public class CustomersController : ControllerBase
         var result = await _mediator.Send(
             new UpdateCustomerCommand(
                 id, req.Name, req.Phone, req.Address,
-                req.DiscountPercent, req.Color, req.Emoji));
+                req.DiscountPercent, req.Color, req.Emoji, req.Notes));
         return result.IsSuccess
             ? Ok(result.Value)
             : BadRequest(new { error = result.Error });

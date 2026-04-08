@@ -83,6 +83,14 @@ public class ProductsController : ControllerBase
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
     }
 
+    // GET /api/products/:id/price-history
+    [HttpGet("{id:guid}/price-history")]
+    public async Task<IActionResult> PriceHistory(Guid id)
+    {
+        var result = await _mediator.Send(new GetProductPriceHistoryQuery(id));
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
     // DELETE /api/products/:id
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)

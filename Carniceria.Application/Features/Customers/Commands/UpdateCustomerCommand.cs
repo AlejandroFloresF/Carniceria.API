@@ -9,10 +9,11 @@ public record UpdateCustomerCommand(
     Guid Id,
     string Name,
     string? Phone,
-    string? Address,          
+    string? Address,
     decimal DiscountPercent,
     string color = "#6366f1",
-    string? emoji = null
+    string? emoji = null,
+    string? notes = null
 ) : IRequest<Result<CustomerDto>>;
 
 public class UpdateCustomerHandler : IRequestHandler<UpdateCustomerCommand, Result<CustomerDto>>
@@ -27,11 +28,11 @@ public class UpdateCustomerHandler : IRequestHandler<UpdateCustomerCommand, Resu
 
         try
         {
-            customer.Update(cmd.Name, cmd.Phone, cmd.Address, cmd.DiscountPercent, cmd.color, cmd.emoji);
+            customer.Update(cmd.Name, cmd.Phone, cmd.Address, cmd.DiscountPercent, cmd.color, cmd.emoji, cmd.notes);
             await _customers.SaveChangesAsync(ct);
             return Result.Ok(new CustomerDto(
                 customer.Id, customer.Name, customer.Phone,
-                customer.Address, customer.DiscountPercent, 0, customer.Color, customer.Emoji));
+                customer.Address, customer.DiscountPercent, 0, customer.Color, customer.Emoji, customer.Notes));
         }
         catch (DomainException ex) { return Result.Fail<CustomerDto>(ex.Message); }
     }

@@ -9,10 +9,11 @@ namespace Carniceria.Application.Features.Customers.Commands;
 public record CreateCustomerCommand(
     string Name,
     string? Phone,
-    string? Address,          // ← era Email
+    string? Address,
     decimal DiscountPercent,
     string color = "#6366f1",
-    string? emoji = null
+    string? emoji = null,
+    string? notes = null
 ) : IRequest<Result<CustomerDto>>;
 
 public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommand, Result<CustomerDto>>
@@ -24,11 +25,11 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommand, Resu
     {
         try
         {
-            var customer = Customer.Create(cmd.Name, cmd.Phone, cmd.Address, cmd.DiscountPercent, cmd.color, cmd.emoji);
+            var customer = Customer.Create(cmd.Name, cmd.Phone, cmd.Address, cmd.DiscountPercent, cmd.color, cmd.emoji, cmd.notes);
             await _customers.AddAsync(customer, ct);
             return Result.Ok(new CustomerDto(
                 customer.Id, customer.Name, customer.Phone,
-                customer.Address, customer.DiscountPercent, 0, customer.Color, customer.Emoji));
+                customer.Address, customer.DiscountPercent, 0, customer.Color, customer.Emoji, customer.Notes));
         }
         catch (DomainException ex) { return Result.Fail<CustomerDto>(ex.Message); }
     }

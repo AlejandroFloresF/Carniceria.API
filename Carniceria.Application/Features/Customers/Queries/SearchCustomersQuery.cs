@@ -30,7 +30,7 @@ public class SearchCustomersHandler : IRequestHandler<SearchCustomersQuery, Resu
             var totalDebt = await _debts.GetTotalPendingAsync(c.Id, ct);
             result.Add(new CustomerDto(
                 c.Id, c.Name, c.Phone, c.Address,
-                c.DiscountPercent, totalDebt, c.Color ?? "#6366f1", c.Emoji));
+                c.DiscountPercent, totalDebt, c.Color ?? "#6366f1", c.Emoji, c.Notes));
         }
 
         return Result.Ok(result);

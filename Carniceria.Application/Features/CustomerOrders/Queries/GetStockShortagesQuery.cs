@@ -13,28 +13,36 @@ public class GetStockShortagesHandler : IRequestHandler<GetStockShortagesQuery, 
 {
     private readonly ICustomerOrderRepository _orders;
     private readonly IProductRepository _products;
+    private readonly IInventoryRepository _inventory;
 
-    public GetStockShortagesHandler(ICustomerOrderRepository orders, IProductRepository products)
+    public GetStockShortagesHandler(
+        ICustomerOrderRepository orders,
+        IProductRepository products,
+        IInventoryRepository inventory)
     {
-        _orders   = orders;
-        _products = products;
+        _orders    = orders;
+        _products  = products;
+        _inventory = inventory;
     }
 
     public async Task<Result<List<StockShortageOrderDto>>> Handle(GetStockShortagesQuery req, CancellationToken ct)
     {
         var today      = DateTime.UtcNow.Date;
         var cutoff     = today.AddDays(req.AlertDaysAhead);
-        var active     = await _orders.GetActiveAsync(ct);
-        var upcoming   = active.Where(o => o.NextDeliveryDate.Date <= cutoff).ToList();
-        var reservedMap = await _orders.GetTotalReservedByProductAsync(ct);
+        var active   = await _orders.GetActiveAsync(ct);
+        var upcoming = active.Where(o => o.NextDeliveryDate.Date <= cutoff).ToList();
 
-        // Load current stock for all relevant products
-        var productIds = upcoming.SelectMany(o => o.Items).Select(i => i.ProductId).Distinct();
+        // Current stock + configured minimum per product
+        var productIds = upcoming.SelectMany(o => o.Items).Select(i => i.ProductId).Distinct().ToList();
         var stockMap   = new Dictionary<Guid, decimal>();
+        var minimumMap = new Dictionary<Guid, decimal>();
         foreach (var pid in productIds)
         {
             var product = await _products.GetByIdAsync(pid, ct);
             if (product is not null) stockMap[pid] = product.StockKg;
+
+            var alert = await _inventory.GetAlertByProductAsync(pid, ct);
+            if (alert is not null) minimumMap[pid] = alert.MinimumStockKg;
         }
 
         var shortages = new List<StockShortageOrderDto>();
@@ -43,14 +51,16 @@ public class GetStockShortagesHandler : IRequestHandler<GetStockShortagesQuery, 
             var shortageItems = order.Items
                 .Select(item =>
                 {
-                    var stock    = stockMap.GetValueOrDefault(item.ProductId, 0m);
-                    var reserved = reservedMap.GetValueOrDefault(item.ProductId, 0m);
-                    // Available = stock minus what ALL orders need
-                    // If stock < what this order alone needs it's a shortage
-                    return stock < item.QuantityKg
+                    var stock     = stockMap.GetValueOrDefault(item.ProductId, 0m);
+                    var minimum   = minimumMap.GetValueOrDefault(item.ProductId, 0m);
+                    // Available = stock minus minimum buffer. Other orders don't subtract
+                    // because stock is the real source of truth, not speculative reservations.
+                    var available = stock - minimum;
+
+                    return available < item.QuantityKg
                         ? new StockShortageItemDto(
                             item.ProductId, item.ProductName,
-                            item.QuantityKg, stock)
+                            item.QuantityKg, Math.Max(0m, available))
                         : null;
                 })
                 .Where(x => x is not null)

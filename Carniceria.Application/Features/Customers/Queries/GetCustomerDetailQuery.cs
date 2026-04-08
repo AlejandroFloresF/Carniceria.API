@@ -65,10 +65,11 @@ public class GetCustomerDetailHandler : IRequestHandler<GetCustomerDetailQuery, 
             customer.Address,
             customer.DiscountPercent,
             totalDebt,
-            customer.Color ?? "#6366f1",  
-            customer.Emoji,              
-            debtDtos,                     
-            priceDtos                     
+            customer.Color ?? "#6366f1",
+            customer.Emoji,
+            debtDtos,
+            priceDtos,
+            customer.Notes
         ));
     }
 }

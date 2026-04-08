@@ -31,7 +31,6 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
     private readonly ICustomerRepository _customers;
     private readonly ICustomerDebtRepository _debts;
     private readonly ICustomerProductPriceRepository _prices;
-    private readonly ICustomerOrderRepository _customerOrders;
 
     public CreateOrderHandler(
         IOrderRepository orders,
@@ -40,8 +39,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         ISessionRepository sessions,
         ICustomerRepository customers,
         ICustomerDebtRepository debts,
-        ICustomerProductPriceRepository prices,
-        ICustomerOrderRepository customerOrders)
+        ICustomerProductPriceRepository prices)
     {
         _orders = orders;
         _products = products;
@@ -50,7 +48,6 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         _customers = customers;
         _debts = debts;
         _prices = prices;
-        _customerOrders = customerOrders;
     }
 
     public async Task<Result<TicketDto>> Handle(CreateOrderCommand cmd, CancellationToken ct)
@@ -81,31 +78,14 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         // ── 3. Construye la orden ────────────────────────────
         var order = Order.Create(cmd.CashierSessionId);
 
-        // Reservas de pedidos: calcula stock disponible descontando lo reservado
-        // a otros clientes (la reserva del mismo cliente no bloquea su propia venta).
-        var totalReserved   = await _customerOrders.GetTotalReservedByProductAsync(ct);
-        var selfReserved    = cmd.CustomerId.HasValue
-            ? await _customerOrders.GetReservedByProductForCustomerAsync(cmd.CustomerId.Value, ct)
-            : new Dictionary<Guid, decimal>();
-
         foreach (var item in cmd.Items)
         {
             var product = await _products.GetByIdAsync(item.ProductId, ct);
             if (product is null)
                 return Result.Fail<TicketDto>($"Product {item.ProductId} not found.");
 
-            var totalRes = totalReserved.GetValueOrDefault(product.Id, 0m);
-            var selfRes  = selfReserved.GetValueOrDefault(product.Id, 0m);
-            var othersRes = Math.Max(0m, totalRes - selfRes);
-            var available = product.StockKg - othersRes;
-
-            if (available < item.Quantity)
-            {
-                var msg = othersRes > 0
-                    ? $"Stock insuficiente para {product.Name}. Disponible: {available:F3} kg ({othersRes:F3} kg reservado para pedidos de otros clientes)."
-                    : $"Insufficient stock for {product.Name}.";
-                return Result.Fail<TicketDto>(msg);
-            }
+            if (product.StockKg < item.Quantity)
+                return Result.Fail<TicketDto>($"Stock insuficiente para {product.Name}. Disponible: {product.StockKg:F3} kg.");
 
             // Si el cliente tiene precio especial para este producto, lo aplica
             if (customPriceMap.TryGetValue(product.Id, out var customPrice))

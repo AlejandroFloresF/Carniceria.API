@@ -74,19 +74,22 @@ public class CustomerOrderRepository : ICustomerOrderRepository
 
     public async Task UpdateWithItemReplacementAsync(CustomerOrder order, CancellationToken ct = default)
     {
-        // 1. Delete old items directly — avoids EF orphan-tracking issues
-        var oldItems = await _db.CustomerOrderItems
+        // 1. Delete old items via direct SQL — bypasses EF tracking conflict
+        //    with items already marked Deleted by ReplaceItems().
+        await _db.CustomerOrderItems
             .Where(i => i.CustomerOrderId == order.Id)
-            .ToListAsync(ct);
-        if (oldItems.Count > 0)
-        {
-            _db.CustomerOrderItems.RemoveRange(oldItems);
-            await _db.SaveChangesAsync(ct);
-        }
+            .ExecuteDeleteAsync(ct);
 
-        // 2. Detach & re-attach order so EF picks up the new items
+        // 2. Clear tracker, then manually set states.
+        //    Update() marks ALL entities with non-default keys as Modified,
+        //    which causes a concurrency error for the brand-new items.
+        //    Instead: attach order as Modified, items as Added.
         _db.ChangeTracker.Clear();
-        _db.CustomerOrders.Update(order);
+        _db.CustomerOrders.Attach(order);
+        _db.Entry(order).State = EntityState.Modified;
+        foreach (var item in order.Items)
+            _db.Entry(item).State = EntityState.Added;
+
         await _db.SaveChangesAsync(ct);
     }
 }
