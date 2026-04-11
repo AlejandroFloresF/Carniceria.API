@@ -1,6 +1,7 @@
 using Carniceria.Domain.Interfaces;
 using Carniceria.Infrastructure.Persistence;
 using Carniceria.Infrastructure.Persistence.Repositories;
+using Carniceria.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,8 @@ public static class DependencyInjection
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<ICustomerProductPriceRepository, CustomerProductPriceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddSingleton<WebAuthnService>();
         services.AddScoped<IExpenseRepository, ExpenseRepository>();
         services.AddScoped<ICustomerOrderRepository, CustomerOrderRepository>();
         services.AddScoped<ICashWithdrawalRepository, CashWithdrawalRepository>();

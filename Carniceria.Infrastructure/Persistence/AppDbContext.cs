@@ -163,6 +163,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.Username).HasMaxLength(100).IsRequired();
             e.HasIndex(x => x.Username).IsUnique();
             e.Property(x => x.PasswordHash).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(200);
+            e.HasIndex(x => x.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
+            e.Property(x => x.PendingEmail).HasMaxLength(200);
+            e.Property(x => x.PasswordResetToken).HasMaxLength(100);
+            e.Property(x => x.OtpCode).HasMaxLength(10);
+            e.Property(x => x.OtpPurpose).HasMaxLength(50);
+            // ProfilePhotoBase64 is a large text column (base64 data URL ~300KB)
+            e.Property(x => x.ProfilePhotoBase64).HasColumnType("text");
         });
 
     }
