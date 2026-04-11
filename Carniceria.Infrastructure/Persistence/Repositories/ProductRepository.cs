@@ -23,5 +23,18 @@ public class ProductRepository : IProductRepository
     public async Task AddAsync(Product product, CancellationToken ct = default) { await _db.Products.AddAsync(product, ct); await _db.SaveChangesAsync(ct); }
     public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default) => _db.Products.AnyAsync(p => p.Id == id, ct);
     public Task SaveChangesAsync(CancellationToken ct = default) =>
-    _db.SaveChangesAsync(ct);
+        _db.SaveChangesAsync(ct);
+
+    public Task<Product?> GetByBarcodeAsync(string barcode, CancellationToken ct = default) =>
+        _db.Products.FirstOrDefaultAsync(p => p.IsActive && p.Barcode == barcode, ct);
+
+    public async Task<bool> DeductStockAtomicAsync(Guid productId, decimal qty, CancellationToken ct = default)
+    {
+        var affected = await _db.Products
+            .Where(p => p.Id == productId && p.StockKg >= qty)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.StockKg, p => p.StockKg - qty)
+                .SetProperty(p => p.UpdatedAt, DateTime.UtcNow), ct);
+        return affected > 0;
+    }
 }

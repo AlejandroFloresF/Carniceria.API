@@ -1,37 +1,40 @@
-﻿using Carniceria.Application.Features.Customers.Commands;
+﻿using System.ComponentModel.DataAnnotations;
+using Carniceria.Application.Features.Customers.Commands;
 using Carniceria.Application.Features.Customers.Queries;
 using Carniceria.Domain.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Carniceria.API.Controllers;
 
 // ── Request records ───────────────────────────────────────────────────────────
 public record CreateCustomerRequest(
-    string Name,
-    string? Phone,
-    string? Address,
-    decimal DiscountPercent,
-    string Color = "#6366f1",
-    string? Emoji = null,
-    string? Notes = null
+    [Required][MaxLength(100)] string Name,
+    [MaxLength(20)]  string? Phone,
+    [MaxLength(100)] string? Address,
+    [Range(0, 100)]  decimal DiscountPercent,
+    [MaxLength(7)]   string Color = "#6366f1",
+    [MaxLength(10)]  string? Emoji = null,
+    [MaxLength(1000)] string? Notes = null
 );
 
 public record UpdateCustomerRequest(
-    string Name,
-    string? Phone,
-    string? Address,
-    decimal DiscountPercent,
-    string Color = "#6366f1",
-    string? Emoji = null,
-    string? Notes = null
+    [Required][MaxLength(100)] string Name,
+    [MaxLength(20)]  string? Phone,
+    [MaxLength(100)] string? Address,
+    [Range(0, 100)]  decimal DiscountPercent,
+    [MaxLength(7)]   string Color = "#6366f1",
+    [MaxLength(10)]  string? Emoji = null,
+    [MaxLength(1000)] string? Notes = null
 );
 
-public record SetPriceRequest(decimal CustomPrice);
-public record PayDebtRequest(string PaymentMethod, decimal CashReceived);
+public record SetPriceRequest([Range(0.01, 9_999_999)] decimal CustomPrice);
+public record PayDebtRequest([Required][MaxLength(20)] string PaymentMethod, [Range(0, 9_999_999)] decimal CashReceived);
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class CustomersController : ControllerBase
 {
     private readonly ISender _mediator;

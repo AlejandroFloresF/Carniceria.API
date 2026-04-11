@@ -31,6 +31,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
     private readonly ICustomerRepository _customers;
     private readonly ICustomerDebtRepository _debts;
     private readonly ICustomerProductPriceRepository _prices;
+    private readonly string _shopName;
 
     public CreateOrderHandler(
         IOrderRepository orders,
@@ -39,7 +40,8 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         ISessionRepository sessions,
         ICustomerRepository customers,
         ICustomerDebtRepository debts,
-        ICustomerProductPriceRepository prices)
+        ICustomerProductPriceRepository prices,
+        Microsoft.Extensions.Configuration.IConfiguration config)
     {
         _orders = orders;
         _products = products;
@@ -48,6 +50,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
         _customers = customers;
         _debts = debts;
         _prices = prices;
+        _shopName = config["App:ShopName"] ?? "GRADILLA 100% EST 1938";
     }
 
     public async Task<Result<TicketDto>> Handle(CreateOrderCommand cmd, CancellationToken ct)
@@ -93,22 +96,20 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
             else
                 order.AddItem(product, item.Quantity);
 
-            product.DeductStock(item.Quantity);
+            // Deducción atómica en DB: protege contra ventas simultáneas del mismo producto
+            var deducted = await _products.DeductStockAtomicAsync(product.Id, item.Quantity, ct);
+            if (!deducted)
+                return Result.Fail<TicketDto>($"Stock insuficiente para {product.Name} (modificado por otra venta simultánea).");
         }
 
         // ── 4. Aplica descuento y asigna cliente ─────────────
+        // El frontend siempre envía cmd.DiscountPercent con el descuento correcto
+        // (ya sea el del cliente o el manual). Lo aplicamos directamente.
         if (customer is not null)
-        {
             order.AssignCustomer(customer);
-            // Si tiene precios por producto, el descuento % no se apila
-            // Si no tiene precios especiales, aplica su descuento % general
-            if (customPriceMap.Count == 0 && customer.DiscountPercent > 0)
-                order.ApplyDiscount(customer.DiscountPercent);
-        }
-        else if (cmd.DiscountPercent > 0)
-        {
+
+        if (cmd.DiscountPercent > 0)
             order.ApplyDiscount(cmd.DiscountPercent);
-        }
 
         // ── 4b. Marca origen pedido si aplica ───────────────
         if (cmd.SourceCustomerOrderId.HasValue)
@@ -153,7 +154,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Result<Tic
 
         var folioNumber = await _tickets.GetNextFolioNumberAsync(ct);
         var folio = folioNumber.ToString().PadLeft(5, '0');
-        var ticket = Ticket.Generate(order, session.CashierName, "GRADILLA 100% EST 1938", folio);
+        var ticket = Ticket.Generate(order, session.CashierName, _shopName, folio);
 
         await _orders.AddAsync(order, ct);
         await _tickets.AddAsync(ticket, ct);

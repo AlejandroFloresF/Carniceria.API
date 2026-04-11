@@ -13,6 +13,7 @@ public class CloseSessionHandler : IRequestHandler<CloseSessionCommand, Result<b
         if (session is null) return Result.Fail<bool>("Session not found.");
         try { session.Close(cmd.ClosingCash); }
         catch (DomainException ex) { return Result.Fail<bool>(ex.Message); }
+        await _sessions.SaveChangesAsync(ct);
         return Result.Ok(true);
     }
 }

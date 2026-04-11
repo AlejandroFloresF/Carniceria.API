@@ -1,13 +1,14 @@
 using System.Reflection;
 using System.Text;
+using System.Threading.RateLimiting;
 using Carniceria.Infrastructure;
 using Carniceria.Infrastructure.Persistence;
 using Carniceria.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-// Npgsql 6+ strict UTC mode rejects DateTime.Kind=Unspecified — disable for single-timezone app
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +43,23 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddRateLimiter(opts =>
+{
+    opts.AddFixedWindowLimiter("login", o =>
+    {
+        o.PermitLimit = 5;
+        o.Window = TimeSpan.FromMinutes(15);
+        o.QueueLimit = 0;
+    });
+    opts.AddFixedWindowLimiter("api", o =>
+    {
+        o.PermitLimit = 200;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueLimit = 0;
+    });
+    opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
         policy.SetIsOriginAllowed(origin => {
@@ -73,6 +91,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseRateLimiter();
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();

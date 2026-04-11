@@ -2,19 +2,21 @@ using Carniceria.Application.Features.CustomerOrders.Commands;
 using Carniceria.Application.Features.CustomerOrders.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using System;
+using Microsoft.AspNetCore.RateLimiting;
+using System.ComponentModel.DataAnnotations;
 
 namespace Carniceria.API.Controllers;
 
 public record CreateCustomerOrderRequest(
-    string Recurrence,
+    [MaxLength(50)] string Recurrence,
     DateTime NextDeliveryDate,
-    List<CreateCustomerOrderItemInput> Items,
-    string? Notes = null
+    [Required][MinLength(1)] List<CreateCustomerOrderItemInput> Items,
+    [MaxLength(500)] string? Notes = null
 );
 
 [ApiController]
 [Route("api/customers/{customerId:guid}/orders")]
+[EnableRateLimiting("api")]
 public class CustomerOrdersController : ControllerBase
 {
     private readonly ISender _mediator;

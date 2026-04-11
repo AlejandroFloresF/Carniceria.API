@@ -30,4 +30,10 @@ public class SessionRepository : ISessionRepository
            .Where(s => s.Status == SessionStatus.Open)
            .OrderByDescending(s => s.OpenedAt)
            .FirstOrDefaultAsync(ct);
+
+    public Task<List<CashierSession>> GetAllOpenSessionsAsync(CancellationToken ct = default) =>
+        _db.CashierSessions
+           .Where(s => s.Status == SessionStatus.Open)
+           .OrderBy(s => s.OpenedAt)
+           .ToListAsync(ct);
 }

@@ -5,21 +5,29 @@ using Carniceria.Domain.Entities;
 using Carniceria.Domain.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.ComponentModel.DataAnnotations;
 
 namespace Carniceria.API.Controllers;
 
 public record RegisterEntryRequest(
-    Guid ProductId, decimal QuantityKg,
-    decimal CostPerKg, EntrySource Source, string? Notes);
+    [Required] Guid ProductId,
+    [Range(0.001, 99999)] decimal QuantityKg,
+    [Range(0, 9_999_999)] decimal CostPerKg,
+    EntrySource Source,
+    [MaxLength(500)] string? Notes);
 
 public record RegisterWasteRequest(
-    Guid ProductId, decimal QuantityKg,
-    WasteReason Reason, string? Notes);
+    [Required] Guid ProductId,
+    [Range(0.001, 99999)] decimal QuantityKg,
+    WasteReason Reason,
+    [MaxLength(500)] string? Notes);
 
-public record SetAlertRequest(decimal MinimumStockKg);
+public record SetAlertRequest([Range(0, 99999)] decimal MinimumStockKg);
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class InventoryController : ControllerBase
 {
     private readonly ISender _mediator;

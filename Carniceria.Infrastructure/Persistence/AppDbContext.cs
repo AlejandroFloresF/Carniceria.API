@@ -26,9 +26,9 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder mb)
     {
         mb.Entity<Product>(e => { e.HasKey(x => x.Id); e.Property(x => x.Name).HasMaxLength(100).IsRequired(); e.Property(x => x.PricePerUnit).HasPrecision(18, 2); e.Property(x => x.StockKg).HasPrecision(18, 3); e.HasIndex(x => x.Name); e.Property(x => x.Barcode).HasMaxLength(100); e.HasIndex(x => x.Barcode).IsUnique().HasFilter("\"Barcode\" IS NOT NULL"); });
-        mb.Entity<Order>(e => { e.HasKey(x => x.Id); e.Property(x => x.CustomerName).HasMaxLength(100); e.Property(x => x.DiscountPercent).HasPrecision(5, 2); e.Property(x => x.CashReceived).HasPrecision(18, 2); e.Property(x => x.SecondaryAmount).HasPrecision(18, 2).HasDefaultValue(0m); e.Ignore(x => x.Subtotal); e.Ignore(x => x.DiscountAmount); e.Ignore(x => x.Total); e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade); });
-        mb.Entity<Ticket>(e => { e.HasKey(x => x.Id); e.Property(x => x.Folio).HasMaxLength(20).IsRequired(); e.HasIndex(x => x.Folio).IsUnique(); e.Property(x => x.Subtotal).HasPrecision(18, 2); e.Property(x => x.DiscountAmount).HasPrecision(18, 2); e.Property(x => x.Total).HasPrecision(18, 2); e.Property(x => x.Change).HasPrecision(18, 2); });
-        mb.Entity<CashierSession>(e => { e.HasKey(x => x.Id); e.Property(x => x.CashierName).HasMaxLength(100).IsRequired(); e.Property(x => x.OpeningCash).HasPrecision(18, 2); e.Property(x => x.ClosingCash).HasPrecision(18, 2); });
+        mb.Entity<Order>(e => { e.HasKey(x => x.Id); e.Property(x => x.CustomerName).HasMaxLength(100); e.Property(x => x.DiscountPercent).HasPrecision(5, 2); e.Property(x => x.CashReceived).HasPrecision(18, 2); e.Property(x => x.SecondaryAmount).HasPrecision(18, 2).HasDefaultValue(0m); e.Ignore(x => x.Subtotal); e.Ignore(x => x.DiscountAmount); e.Ignore(x => x.Total); e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade); e.HasIndex(x => x.CashierSessionId); });
+        mb.Entity<Ticket>(e => { e.HasKey(x => x.Id); e.Property(x => x.Folio).HasMaxLength(20).IsRequired(); e.HasIndex(x => x.Folio).IsUnique(); e.HasIndex(x => x.OrderId); e.Property(x => x.Subtotal).HasPrecision(18, 2); e.Property(x => x.DiscountAmount).HasPrecision(18, 2); e.Property(x => x.Total).HasPrecision(18, 2); e.Property(x => x.Change).HasPrecision(18, 2); });
+        mb.Entity<CashierSession>(e => { e.HasKey(x => x.Id); e.Property(x => x.CashierName).HasMaxLength(100).IsRequired(); e.Property(x => x.OpeningCash).HasPrecision(18, 2); e.Property(x => x.ClosingCash).HasPrecision(18, 2); e.HasIndex(x => x.Status); });
         mb.Entity<Customer>(e =>
         {
             e.HasKey(x => x.Id);
@@ -61,13 +61,6 @@ public class AppDbContext : DbContext
             e.Property(x => x.MinimumStockKg).HasPrecision(18, 3);
             e.HasIndex(x => x.ProductId).IsUnique();
         });
-        mb.Entity<CustomerDebt>(e => {
-            e.HasKey(x => x.Id);
-            e.Property(x => x.CustomerName).HasMaxLength(100).IsRequired();
-            e.Property(x => x.OrderFolio).HasMaxLength(20).IsRequired();
-            e.Property(x => x.Amount).HasPrecision(18, 2);
-            e.HasIndex(x => x.CustomerId);
-        });
         mb.Entity<OrderItem>(e =>
         {
             e.HasKey(x => x.Id);
@@ -88,11 +81,12 @@ public class AppDbContext : DbContext
         mb.Entity<CustomerDebt>(e =>
         {
             e.HasKey(x => x.Id);
-            e.Property(x => x.CustomerName).HasMaxLength(100);
-            e.Property(x => x.OrderFolio).HasMaxLength(20);
+            e.Property(x => x.CustomerName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.OrderFolio).HasMaxLength(20).IsRequired();
             e.Property(x => x.Amount).HasPrecision(18, 2);
-            e.HasIndex(x => x.CustomerId);
             e.Property(x => x.Note).HasMaxLength(300);
+            e.HasIndex(x => x.CustomerId);
+            e.HasIndex(x => new { x.Status, x.PaidAt });
         });
 
         mb.Entity<CashierSession>(e =>

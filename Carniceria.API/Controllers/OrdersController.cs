@@ -1,29 +1,32 @@
+using System.ComponentModel.DataAnnotations;
 using Carniceria.Application.Common;
 using Carniceria.Application.Features.Orders.Commands;
 using Carniceria.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Carniceria.API.Controllers;
 
 public record CreateOrderRequest(
-    Guid CashierSessionId,
-    List<OrderItemInputDto> Items,
-    decimal DiscountPercent,
+    [Required] Guid CashierSessionId,
+    [Required][MinLength(1)] List<OrderItemInputDto> Items,
+    [Range(0, 100)] decimal DiscountPercent,
     PaymentMethod PaymentMethod,
-    decimal CashReceived,
+    [Range(0, 9_999_999)] decimal CashReceived,
     Guid? CustomerId,
-    string? DebtNote = null,
-    decimal AdvancePayment = 0,
-    string? AdvancePaymentMethod = null,
+    [MaxLength(300)] string? DebtNote = null,
+    [Range(0, 9_999_999)] decimal AdvancePayment = 0,
+    [MaxLength(20)] string? AdvancePaymentMethod = null,
     Guid? SourceCustomerOrderId = null,
-    string? SecondaryPaymentMethod = null,
-    decimal SecondaryAmount = 0
+    [MaxLength(20)] string? SecondaryPaymentMethod = null,
+    [Range(0, 9_999_999)] decimal SecondaryAmount = 0
 );
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class OrdersController : ControllerBase
 {
     private readonly ISender _mediator;

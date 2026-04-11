@@ -7,6 +7,22 @@ public record TicketItemDto(Guid ProductId, string ProductName, decimal Quantity
 public record CashierSessionDto(Guid SessionId, string CashierName, DateTime OpenedAt, decimal openingCash);
 public record SessionSummaryDto(Guid SessionId, string CashierName, DateTime OpenedAt, DateTime? ClosedAt, int TotalOrders, decimal TotalSales, decimal TotalCash, decimal TotalCard, decimal TotalTransfer, decimal TotalDiscounts, decimal OpeningCash, decimal ExpectedCash, decimal TotalDebtPayments, decimal TotalExpenses = 0);
 public record CashMovementDto(DateTime At, string Type, string Description, decimal Amount, Guid? OrderId = null);
+public record ActiveSessionDto(
+    Guid SessionId,
+    string CashierName,
+    DateTime OpenedAt,
+    decimal CurrentCash,
+    int OrderCount,
+    decimal TotalSales,
+    decimal TotalCash,
+    decimal TotalCard,
+    decimal TotalTransfer,
+    decimal TotalPayLater,
+    decimal TotalDiscounts,
+    DateTime? LastSaleAt,
+    string? LastSaleDescription,
+    decimal LastSaleAmount
+);
 public record ProductPriceHistoryDto(Guid Id, decimal OldPrice, decimal NewPrice, DateTime ChangedAt);
 public record CustomerDto(
     Guid Id,

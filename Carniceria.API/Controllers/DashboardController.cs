@@ -2,12 +2,14 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Carniceria.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin")]
+[EnableRateLimiting("api")]
 public class DashboardController : ControllerBase
 {
     private readonly ISender _mediator;

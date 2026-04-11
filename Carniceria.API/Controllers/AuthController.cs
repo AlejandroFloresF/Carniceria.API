@@ -1,10 +1,15 @@
+using System.ComponentModel.DataAnnotations;
 using Carniceria.Application.Features.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Carniceria.API.Controllers;
 
-public record LoginRequest(string Username, string Password);
+public record LoginRequest(
+    [Required][MaxLength(100)] string Username,
+    [Required][MaxLength(255)] string Password
+);
 
 [ApiController]
 [Route("api/[controller]")]
@@ -14,6 +19,7 @@ public class AuthController : ControllerBase
     public AuthController(ISender mediator) => _mediator = mediator;
 
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
         var result = await _mediator.Send(new LoginCommand(req.Username, req.Password));

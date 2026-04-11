@@ -1,25 +1,50 @@
+using System.ComponentModel.DataAnnotations;
 using Carniceria.Application.Features.Expenses;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Carniceria.API.Controllers;
 
 public record CreateScheduledExpenseRequest(
-    string Name, decimal Amount, string Category, string Recurrence,
-    DateTime NextDueDate, int AlertDaysBefore = 3, string? Description = null);
+    [Required][MaxLength(100)] string Name,
+    [Range(0.01, 9_999_999)]   decimal Amount,
+    [Required][MaxLength(50)]  string Category,
+    [Required][MaxLength(20)]  string Recurrence,
+    DateTime NextDueDate,
+    [Range(1, 90)] int AlertDaysBefore = 3,
+    [MaxLength(300)] string? Description = null
+);
 
 public record UpdateScheduledExpenseRequest(
-    string Name, decimal Amount, string Category, string Recurrence,
-    DateTime NextDueDate, int AlertDaysBefore, string? Description);
+    [Required][MaxLength(100)] string Name,
+    [Range(0.01, 9_999_999)]   decimal Amount,
+    [Required][MaxLength(50)]  string Category,
+    [Required][MaxLength(20)]  string Recurrence,
+    DateTime NextDueDate,
+    [Range(1, 90)] int AlertDaysBefore,
+    [MaxLength(300)] string? Description
+);
 
 public record CreateExpenseRequestBody(
-    string Description, decimal Amount, string Category,
-    string RequestedBy, Guid? SessionId, Guid? ScheduledExpenseId, string? Notes);
+    [Required][MaxLength(200)] string Description,
+    [Range(0.01, 9_999_999)]   decimal Amount,
+    [Required][MaxLength(50)]  string Category,
+    [Required][MaxLength(100)] string RequestedBy,
+    Guid? SessionId,
+    Guid? ScheduledExpenseId,
+    [MaxLength(300)] string? Notes
+);
 
-public record ReviewExpenseRequestBody(bool Approved, string ReviewedBy, string? DenyReason);
+public record ReviewExpenseRequestBody(
+    bool Approved,
+    [Required][MaxLength(100)] string ReviewedBy,
+    [MaxLength(300)] string? DenyReason
+);
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class ExpensesController : ControllerBase
 {
     private readonly ISender _mediator;

@@ -1,15 +1,19 @@
+using System.ComponentModel.DataAnnotations;
 using Carniceria.Application.Features.Sessions.Commands;
 using Carniceria.Application.Features.Sessions.Queries;
-
-
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
 namespace Carniceria.API.Controllers;
-public record OpenSessionRequest(string CashierName, decimal OpeningCash);
-public record CloseSessionRequest(decimal ClosingCash);
-public record CashWithdrawalRequest(decimal Amount, string? Note);
+
+public record OpenSessionRequest([Required][MaxLength(100)] string CashierName, [Range(0, 9_999_999)] decimal OpeningCash);
+public record CloseSessionRequest([Range(0, 9_999_999)] decimal ClosingCash);
+public record CashWithdrawalRequest([Range(0.01, 9_999_999)] decimal Amount, [MaxLength(300)] string? Note);
+
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class SessionsController : ControllerBase
 {
     private readonly ISender _mediator;
@@ -52,5 +56,12 @@ public class SessionsController : ControllerBase
     {
         var result = await _mediator.Send(new GetCashiersQuery());
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+    }
+
+    [HttpGet("active")]
+    public async Task<IActionResult> GetActive()
+    {
+        var result = await _mediator.Send(new GetActiveSessionsQuery());
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 }

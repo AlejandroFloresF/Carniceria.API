@@ -1,17 +1,32 @@
+using System.ComponentModel.DataAnnotations;
 using Carniceria.Application.Features.Products.Commands;
 using Carniceria.Application.Features.Products.Queries;
 using Carniceria.Domain.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Carniceria.API.Controllers;
 
-public record UpdatePriceRequest(decimal NewPrice);
-public record CreateProductRequest(string Name, string Category, decimal Price, string Unit, string? Barcode = null);
-public record UpdateProductRequest(string Name, string Category, decimal Price, string Unit, string? Barcode = null);
+public record UpdatePriceRequest([Range(0.01, 9_999_999)] decimal NewPrice);
+public record CreateProductRequest(
+    [Required][MaxLength(100)] string Name,
+    [Required][MaxLength(50)]  string Category,
+    [Range(0.01, 9_999_999)]   decimal Price,
+    [Required][MaxLength(10)]  string Unit,
+    [MaxLength(100)]           string? Barcode = null
+);
+public record UpdateProductRequest(
+    [Required][MaxLength(100)] string Name,
+    [Required][MaxLength(50)]  string Category,
+    [Range(0.01, 9_999_999)]   decimal Price,
+    [Required][MaxLength(10)]  string Unit,
+    [MaxLength(100)]           string? Barcode = null
+);
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class ProductsController : ControllerBase
 {
     private readonly ISender _mediator;
@@ -41,6 +56,29 @@ public class ProductsController : ControllerBase
             isActive     = p.IsActive,
             barcode      = p.Barcode,
         }));
+    }
+
+    // GET /api/products/by-barcode/{code}  — used by barcode scanner
+    [HttpGet("by-barcode/{code}")]
+    public async Task<IActionResult> ByBarcode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code) || code.Length > 100)
+            return BadRequest(new { error = "Invalid barcode" });
+
+        var repo = HttpContext.RequestServices.GetRequiredService<IProductRepository>();
+        var p = await repo.GetByBarcodeAsync(code);
+        if (p is null) return NotFound(new { error = "Producto no encontrado" });
+
+        return Ok(new {
+            id           = p.Id,
+            name         = p.Name,
+            category     = p.Category,
+            pricePerUnit = p.PricePerUnit,
+            effectivePrice = p.PricePerUnit,
+            unit         = p.Unit,
+            stockKg      = p.StockKg,
+            barcode      = p.Barcode,
+        });
     }
 
     // GET /api/products/with-prices/:customerId

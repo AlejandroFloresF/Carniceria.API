@@ -1,11 +1,13 @@
 ﻿using Carniceria.Domain.Entities;
 using Carniceria.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Carniceria.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("api")]
 public class TicketsController : ControllerBase
 {
     private readonly ITicketRepository _tickets;
