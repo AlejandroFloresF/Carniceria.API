@@ -28,20 +28,16 @@ public record SendOtpRequest([Required][MaxLength(50)] string Purpose);
 
 public record ChangePasswordRequest(
     [Required][MaxLength(255)] string CurrentPassword,
-    [Required][MinLength(8)][MaxLength(255)] string NewPassword,
-    [Required][MaxLength(10)] string OtpCode
+    [Required][MinLength(8)][MaxLength(255)] string NewPassword
 );
 
 public record UpdateUsernameRequest(
-    [Required][MaxLength(100)] string NewUsername,
-    [Required][MaxLength(10)] string OtpCode
+    [Required][MaxLength(100)] string NewUsername
 );
 
-public record RequestEmailChangeRequest(
+public record UpdateEmailRequest(
     [Required][EmailAddress][MaxLength(200)] string NewEmail
 );
-
-public record ConfirmEmailChangeRequest([Required][MaxLength(10)] string OtpCode);
 
 public record UpdateProfilePhotoRequest([MaxLength(8_000_000)] string? Base64DataUrl);
 
@@ -180,11 +176,7 @@ public class AuthController : ControllerBase
         if (!BCrypt.Net.BCrypt.Verify(req.CurrentPassword, user.PasswordHash))
             return BadRequest(new { error = "Contraseña actual incorrecta." });
 
-        if (!user.ValidateOtp(req.OtpCode, "change-password"))
-            return BadRequest(new { error = "Código incorrecto o expirado." });
-
         user.SetPasswordHash(BCrypt.Net.BCrypt.HashPassword(req.NewPassword));
-        user.ClearOtp();
         await _users.SaveChangesAsync();
 
         return Ok(new { message = "Contraseña actualizada." });
@@ -197,23 +189,18 @@ public class AuthController : ControllerBase
         var user = await _users.GetByIdAsync(CurrentUserId);
         if (user is null) return NotFound();
 
-        if (!user.ValidateOtp(req.OtpCode, "change-username"))
-            return BadRequest(new { error = "Código incorrecto o expirado." });
-
         if (await _users.UsernameExistsAsync(req.NewUsername, CurrentUserId))
             return Conflict(new { error = "Ese nombre de usuario ya existe." });
 
         user.SetUsername(req.NewUsername);
-        user.ClearOtp();
         await _users.SaveChangesAsync();
 
         return Ok(new { message = "Usuario actualizado.", username = user.Username });
     }
 
-    [HttpPost("request-email-change")]
+    [HttpPut("email")]
     [Authorize(Roles = "Admin")]
-    [EnableRateLimiting("login")]
-    public async Task<IActionResult> RequestEmailChange([FromBody] RequestEmailChangeRequest req)
+    public async Task<IActionResult> UpdateEmail([FromBody] UpdateEmailRequest req)
     {
         var user = await _users.GetByIdAsync(CurrentUserId);
         if (user is null) return NotFound();
@@ -221,28 +208,7 @@ public class AuthController : ControllerBase
         if (await _users.EmailExistsAsync(req.NewEmail, CurrentUserId))
             return Conflict(new { error = "Ese correo ya está en uso." });
 
-        user.SetPendingEmail(req.NewEmail);
-        var otp = user.GenerateOtp("change-email");
-        await _users.SaveChangesAsync();
-
-        try { await _email.SendOtpAsync(req.NewEmail, user.Username, otp, "change-email"); }
-        catch { return StatusCode(500, new { error = "Error al enviar el correo de verificación." }); }
-
-        return Ok(new { message = "Código enviado al nuevo correo." });
-    }
-
-    [HttpPost("confirm-email-change")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> ConfirmEmailChange([FromBody] ConfirmEmailChangeRequest req)
-    {
-        var user = await _users.GetByIdAsync(CurrentUserId);
-        if (user is null) return NotFound();
-
-        if (!user.ValidateOtp(req.OtpCode, "change-email"))
-            return BadRequest(new { error = "Código incorrecto o expirado." });
-
-        user.ConfirmEmailChange();
-        user.ClearOtp();
+        user.SetEmail(req.NewEmail);
         await _users.SaveChangesAsync();
 
         return Ok(new { message = "Correo actualizado.", email = user.Email });
